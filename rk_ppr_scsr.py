@@ -1,12 +1,16 @@
 #!/usr/bin/python3
+"""A game of Rock, Paper, Scissors against the computer"""
 
 import random
-options = ["Rock", "Paper", "Scissors"]
+options = ["Rock", "Paper", "Scissors"]  # Global variables not recommended
 
 
 def get_choice():
-    """Prompts the user. Randomises a choice from a list.
-    Returns a dictionary with user input and the choice"""
+    """Prompt for input, choose item from list, return a dictionary.
+
+    Return:
+    choices -- A dictionary with selected string and user iput.
+    """
 
     player_choice = input("Rock! Paper! Scissors! GO!!\n")
     comp_choice = random.choice(options)
@@ -16,13 +20,22 @@ def get_choice():
 
 
 def winner(player, comp):
-    """Determines the winner with cool onomatopeia"""
+    """Compare two strings, return a string.
 
-    schiing = "shhvwiipp!!"
-    crush = "kllaanngg!!"
-    cover = "ffwaaampp!!"
-    p_win = " YOU WIN!"
-    c_win = " YOU LOSE!"
+    Arguments:
+    player -- a string with only alphabets
+    comp -- a string with only alphabets
+
+    Return:
+    A string which typically consists of concatenated values annoucing the
+    winner.
+    """
+
+    schiing = "shhvwiipp!! "
+    crush = "kllaanngg!! "
+    cover = "ffwaaampp!! "
+    p_win = "YOU WIN!"
+    c_win = "YOU LOSE!"
 
     if player.lower() == comp.lower():
         return "JINXX!! It's a tie!!"
@@ -42,11 +55,11 @@ def winner(player, comp):
         else:
             return schiing.upper() + p_win.capitalize() + "\n"
     else:
-        return "Hey! Only Rocks, Papers and Scissors allowed.\n"
+        return "Hey! Only Rocks, Papers and Scissors allowed."
 
 
 def ref():
-    """Checks that input is part of the alphabet and determines winner"""
+    """Call get_choice(), check user input then print the return of winner()"""
 
     play = get_choice()
     print(f"Player [{play['Player']}] | Computer [{play['Computer']}]")
