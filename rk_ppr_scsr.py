@@ -9,7 +9,10 @@ def get_choice():
     """Prompt for input, choose item from list, return a dictionary.
 
     Return:
-    choices -- A dictionary with selected string and user iput.
+    choices -- A dictionary with the selected string and user iput.
+
+    Side effect:
+    Reads from the global variable 'options'
     """
 
     player_choice = input("Rock! Paper! Scissors! GO!!\n")
@@ -20,7 +23,7 @@ def get_choice():
 
 
 def winner(player, comp):
-    """Compare two strings, return a string.
+    """Compare two strings, return different strings based on the results.
 
     Arguments:
     player -- a string with only alphabets
@@ -29,13 +32,15 @@ def winner(player, comp):
     Return:
     A string which typically consists of concatenated values annoucing the
     winner.
+
+    Side effect:
+    Reads from the global variable 'options'
     """
 
     schiing = "shhvwiipp!! "
     crush = "kllaanngg!! "
     cover = "ffwaaampp!! "
-    p_win = "YOU WIN!"
-    c_win = "YOU LOSE!"
+    p_win, c_win = "YOU WIN!", "YOU LOSE!"
 
     if player.lower() == comp.lower():
         return "JINXX!! It's a tie!!"
@@ -64,7 +69,7 @@ def ref():
     play = get_choice()
     print(f"Player [{play['Player']}] | Computer [{play['Computer']}]")
     if play["Player"].isalpha():
-        print(winner(play["Player"], play["Computer"]))
+        print(winner(play["Player"], play["Computer"]), end="")
     else:
         print("Huh!?")
 
