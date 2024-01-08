@@ -2,8 +2,9 @@
 # Python 3 program to find a prime factor of composite using
 # Pollard's Rho algorithm
 import random
-import math
-import sys
+from math import gcd as gcd
+from sys import exit as exit
+from sys import argv as argv
 
 
 # Function to calculate (base^exponent)%modulus
@@ -62,7 +63,7 @@ def PollardRho(n):
         y = (modular_pow(y, 2, n) + c + n) % n
 
         # check gcd of |x-y| and n
-        d = math.gcd(abs(x - y), n)
+        d = gcd(abs(x - y), n)
 
         # retry if the algorithm fails to find prime factor
         # with chosen x and c
@@ -75,11 +76,11 @@ def PollardRho(n):
 # Driver function
 if __name__ == "__main__":
 
-    if len(sys.argv) != 2:
+    if len(argv) != 2:
         print("Usage: factors <file>")
-        sys.exit(1)
+        exit(1)
 
-    input_file = sys.argv[1]
+    input_file = argv[1]
 
     # Read numbers from the file and factorize each number
     try:
@@ -89,13 +90,13 @@ if __name__ == "__main__":
                 num = int(num.strip())
                 q = int(PollardRho(num))
                 p = int(num / q)
-                print("{:d}={:d}*{:d}".format(num, q, p))
+                print("{:d}={:d}*{:d}".format(num, p, q))
 
     except FileNotFoundError:
         print(f"File '{input_file}' not found.")
-        sys.exit(1)
+        exit(1)
     except ValueError:
         print("Invalid input in the file.")
-        sys.exit(1)
+        exit(1)
 
 # This code is contributed by chitranayal
