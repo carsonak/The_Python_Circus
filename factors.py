@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 import sys
+from math import isqrt
 
 
 def factorization(n):
     def smallest_factor(n):
-        for i in range(2, int(n*0.5) + 1):
+        for i in range(2, int(isqrt(n)+1) + 1):
             if n % i == 0:
                 return i
         return n  # Return n itself if it's prime
@@ -31,7 +32,6 @@ if __name__ == "__main__":
                 p, q = factorization(num)
                 result = "{}={}{}".format(num, q, p)
                 print(result)
-
     except FileNotFoundError:
         print(f"File '{input_file}' not found.")
         sys.exit(1)
