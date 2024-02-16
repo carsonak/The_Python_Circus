@@ -36,58 +36,52 @@ def bubble_sort(array):
             g = new_g
 
 
-def main():
-    """Main"""
+def speed_test(funct, iters=10000, data_range=(10, 100), arr_len=20, rev=0):
+    """"""
 
-    max = 10000
-    n_range = (10, 100)
-    exec_time = np.empty(max)
-    for g in range(max):
-        l = np.array([ran.randint(n_range[0], n_range[1]) for x in range(20)])
+    if type(iters) is not int:
+        raise TypeError("iters must be an int")
+
+    if iters < 0:
+        raise ValueError("iters must be a positive integer")
+
+    a_typ = type(arr_len)
+    if a_typ is not int and a_typ is not tuple and a_typ is not list and a_typ is not set:
+        raise TypeError("arr_len should be an int or a sequence type")
+
+    if a_typ is tuple or a_typ is list:
+        if len(arr_len) != 2:
+            raise ValueError("arr_len should be a sequence of 2 ints")
+
+        if type(arr_len[0]) is not int and type(arr_len[1]) is not int:
+            raise TypeError("arr_len should be a sequence of 2 ints")
+
+    exec_time = np.empty(iters)
+    for g in range(iters):
+        if a_typ is int:
+            l = np.array([ran.randint(data_range[0], data_range[1])
+                         for x in range(arr_len)])
+        else:
+            l = np.array([ran.randint(data_range[0], data_range[1])
+                         for x in range(ran.randint(arr_len[0], arr_len[1]))])
+
+        if rev:
+            l = np.sort(l)[::-1]
+
         start = time.perf_counter()
-        bubble_sort(l)
+        funct(l)
         end = time.perf_counter()
         exec_time[g] = end - start
         # print(f"{exec_time[g]:.7f}s\n{l}")
-    else:
-        print(
-            f"Bubble Sort\n--------------\nArray sizes: 20" + f"""
-Iterations: {max}
-Data: Random range {n_range[0]}-{n_range[1]}
-Average sorting time: {np.mean(exec_time):.7f}s
-""")
 
-    for g in range(max):
-        l = np.array([ran.randint(n_range[0], n_range[1]) for x in range(20)])
-        l = np.sort(l)[::-1]
-        start = time.perf_counter()
-        bubble_sort(l)
-        end = time.perf_counter()
-        exec_time[g] = end - start
-        # print(f"{exec_time[g]:.7f}s\n{l}")
-    else:
-        print(
-            f"Bubble Sort\n--------------\nArray sizes: 20" + f"""
-Iterations: {max}
-Data: Reversed range {n_range[0]}-{n_range[1]}
-Average sorting time: {np.mean(exec_time):.7f}s
-""")
-
-    for g in range(max):
-        l = np.array([ran.randint(n_range[0], n_range[1])
-                     for x in range(ran.randint(5, 50))])
-        start = time.perf_counter()
-        bubble_sort(l)
-        end = time.perf_counter()
-        exec_time[g] = end - start
-    else:
-        print(
-            f"Bubble Sort\n--------------\nArray sizes: Random range 5-50" + f"""
-Iterations: {max}
-Data: Random range {n_range[0]}-{n_range[1]}
-Average sorting time: {np.mean(exec_time):.7f}s
-""")
+    return f"{funct.__name__:s}\n" + ("-" * len(funct.__name__)) + "\n" + \
+        f"Array sizes: {arr_len}\n" + \
+        f"Iterations: {iters}\n" + \
+        "Data: {} range {}-{}\n".format(("Reversed" if rev else "Random"), data_range[0], data_range[1]) + \
+        f"Average sorting time: {np.mean(exec_time):.7f}s\n"
 
 
 if __name__ == "__main__":
-    main()
+    print(speed_test(bubble_sort))
+    print(speed_test(bubble_sort, rev=1))
+    print(speed_test(bubble_sort, arr_len=(5, 50)))
