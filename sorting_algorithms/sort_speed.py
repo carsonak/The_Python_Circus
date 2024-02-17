@@ -11,23 +11,21 @@ class Sort_Speed():
     Sort_Speed class: methods and attributes for timing sorting algorithms
 
     Attributes:
-        funct (function): a function to be tested
+        funct (Callable): a function to be tested
         reps (int): number of repetitions for the test, default 10000
-        data_range: range of values (as a tuple) for the data set,
-                    default (10, 100)
-        arr_len: array length of the data set, default 20
+        data_range (int | tuple[int, int]): range of values (as a tuple)
+            for the data set, default (10, 100)
+        arr_len (int): array length of the data set, default 20
 
     Methods:
-        __init__: initialises a Sort_Speed instance, with give attributes
+        __init__: initialises a Sort_Speed instance, with given attributes
         speed_test: avarages the time taken for an algorithm to sort random
                     sets of data
     """
 
-    def __init__(self,
-                 funct: typing.Callable[[list[int]], None],
-                 reps: int = 10000,
-                 data_range: int | tuple[int, int] = (10, 99),
-                 arr_len: int = 20):
+    def __init__(self, funct: typing.Callable[[np.ndarray], None],
+                 reps=10000, data_range: int | tuple[int, int] = (10, 99),
+                 arr_len=20):
         self.funct = funct
         self.reps = reps
         self.data_range = data_range
@@ -99,7 +97,7 @@ class Sort_Speed():
 
         self.__alen = arr_len
 
-    def speed_test(self, reversed=False) -> str:
+    def speed_test(self, reversed=False):
         """
         Return average execution time of a function on random data sets
 
@@ -121,10 +119,12 @@ class Sort_Speed():
         for g in range(self.reps):
             if a_typ is int:
                 l = np.array([randint(self.data_range[0], self.data_range[1])
-                              for x in range(self.arr_len)])
+                              for x in range(self.arr_len)], dtype=int)
             else:
                 l = np.array([randint(self.data_range[0], self.data_range[1])
-                              for x in range(randint(self.arr_len[0], self.arr_len[1]))])
+                              for x in range(randint(self.arr_len[0],
+                                                     self.arr_len[1]))],
+                             dtype=int)
 
             if reversed:
                 l = np.sort(l)[::-1]

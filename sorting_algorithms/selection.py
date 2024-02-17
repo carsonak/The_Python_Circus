@@ -13,10 +13,10 @@ Space
 Worst-case : O(1) auxiliary
 """
 from sort_speed import Sort_Speed
-from random import randint
+from numpy import ndarray
 
 
-def selection_sort(array: list[int]) -> None:
+def selection_sort(array: ndarray):
     for g in range(0, (len(array) - 1)):
         min = g
         for h in range(g + 1, len(array)):

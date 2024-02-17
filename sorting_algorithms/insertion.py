@@ -13,9 +13,10 @@ Space
 Worst-case : O(n) total, O(1) auxiliary
 """
 from sort_speed import Sort_Speed
+from numpy import ndarray
 
 
-def insertion_sort(array: list[int]) -> None:
+def insertion_sort(array: ndarray):
     for i in range(1, len(array)):
         k = array[i]
         j = i

@@ -13,9 +13,10 @@ Space
 Worst-case : O(n) total, O(1) auxiliary
 """
 from sort_speed import Sort_Speed
+from numpy import ndarray
 
 
-def bubble_sort(array: list[int]) -> None:
+def bubble_sort(array: ndarray):
     g = len(array)
     while g > 1:
         new_g = 0

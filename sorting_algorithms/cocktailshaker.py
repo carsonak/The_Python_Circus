@@ -13,9 +13,10 @@ Space
 Worst-case : O(1) auxiliary
 """
 from sort_speed import Sort_Speed
+from numpy import ndarray
 
 
-def cocktailshaker_sort(array: list[int]) -> None:
+def cocktailshaker_sort(array: ndarray):
     """
     A variation of bubble sort that operates bi-directionally
     """
