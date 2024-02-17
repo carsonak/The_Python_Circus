@@ -1,18 +1,31 @@
 #!/usr/bin/env python3
+"""Module for Sort_Speed"""
 import numpy as np
 from time import perf_counter
 from random import randint
 
 
 class Sort_Speed():
-    """"""
+    """
+    Sort_Speed class: methods and attributes for timing sorting algorithms
 
-    def __init__(self, funct, reps=10000, data_range=(10, 100), arr_len=20, rev=0):
+    Attributes:
+        funct (function): a function to be tested
+        reps (int): number of repetitions
+        data_range: range of values for the data set
+        arr_len: array length of data set
+
+    Methods:
+        __init__: initialises a Sort_Speed instance
+        speed_test: runs a function over a random set of data and
+            times execution time
+    """
+
+    def __init__(self, funct, reps=10000, data_range=(10, 100), arr_len=20):
         self.funct = funct
         self.reps = reps
         self.data_range = data_range
         self.arr_len = arr_len
-        self.rev = rev
 
     @property
     def funct(self):
@@ -20,7 +33,11 @@ class Sort_Speed():
 
     @funct.setter
     def funct(self, funct):
-        """Set funct to test"""
+        """Set the function to test"""
+
+        if type(funct) is not type(lambda x: x):
+            raise TypeError("funct must be a function")
+
         self.__funct = funct
 
     @property
@@ -45,12 +62,12 @@ class Sort_Speed():
 
     @data_range.setter
     def data_range(self, data_range):
-        """"""
+        """Set the data_range"""
 
         if type(data_range) is not tuple:
             raise TypeError("data_range must be a tuple of 2 integers")
 
-        if type(data_range[0]) is not int or type(data_range) is not int:
+        if type(data_range[0]) is not int or type(data_range[1]) is not int:
             raise TypeError("data_range must be a tuple of 2 integers")
 
         self.__range = data_range
@@ -61,7 +78,7 @@ class Sort_Speed():
 
     @arr_len.setter
     def arr_len(self, arr_len):
-        """"""
+        """Set length of the arrays"""
 
         a_typ = type(arr_len)
         if a_typ is not int and a_typ is not tuple and a_typ is not list and a_typ is not set:
@@ -76,16 +93,16 @@ class Sort_Speed():
 
         self.__alen = arr_len
 
-    @property
-    def rev(self):
-        return self.__rev
+    def speed_test(self, reversed=False):
+        """
+        Return average execution time of a function on random data sets
 
-    @rev.setter
-    def rev(self, rev):
-        self.__rev = rev
+        Args:
+            reversed (bool): flag for using data sorted in reverse
 
-    def speed_test(self):
-        """"""
+        Return:
+            a string with information about the test results
+        """
 
         a_typ = type(self.arr_len)
         exec_time = np.empty(self.reps)
@@ -97,7 +114,7 @@ class Sort_Speed():
                 l = np.array([randint(self.data_range[0], self.data_range[1])
                               for x in range(randint(self.arr_len[0], self.arr_len[1]))])
 
-            if self.rev:
+            if reversed:
                 l = np.sort(l)[::-1]
 
             start = perf_counter()
@@ -109,5 +126,5 @@ class Sort_Speed():
         return f"{self.funct.__qualname__:s}\n" + ("-" * len(self.funct.__qualname__)) + "\n" + \
             f"Array sizes: {self.arr_len}\n" + \
             f"Iters: {self.reps}\n" + \
-            "Data: {} range {}-{}\n".format(("Reversed" if self.rev else "Random"), self.data_range[0], self.data_range[1]) + \
+            "Data: {} range {}-{}\n".format(("Reversed" if reversed else "Random"), self.data_range[0], self.data_range[1]) + \
             f"Average sorting time: {np.mean(exec_time):.7f}s\n"

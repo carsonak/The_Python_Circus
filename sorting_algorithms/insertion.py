@@ -20,8 +20,7 @@ if __name__ == "__main__":
     o = Sort_Speed(insertion_sort)
     print(o.speed_test())
 
-    o.rev(1)
-    print(o.speed_test())
+    print(o.speed_test(1))
 
-    o.arr_len((5, 50))
+    o.arr_len = (5, 50)
     print(o.speed_test())
