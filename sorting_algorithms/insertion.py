@@ -4,8 +4,6 @@ from sort_speed import Sort_Speed
 
 
 def insertion_sort(array):
-    """Insertion sort code"""
-
     for i in range(1, len(array)):
         k = array[i]
         j = i
@@ -18,9 +16,9 @@ def insertion_sort(array):
 
 if __name__ == "__main__":
     o = Sort_Speed(insertion_sort)
-    print(o.speed_test())
+    print(o.speed_test(), end="\n\n")
 
-    print(o.speed_test(1))
+    print(o.speed_test(1), end="\n\n")
 
     o.arr_len = (5, 50)
     print(o.speed_test())

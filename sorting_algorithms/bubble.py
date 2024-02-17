@@ -20,9 +20,9 @@ def bubble_sort(array):
 
 if __name__ == "__main__":
     o = Sort_Speed(bubble_sort)
-    print(o.speed_test())
+    print(o.speed_test(), end="\n\n")
 
-    print(o.speed_test(1))
+    print(o.speed_test(1), end="\n\n")
 
     o.arr_len = (5, 50)
     print(o.speed_test())

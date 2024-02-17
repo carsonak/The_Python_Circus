@@ -127,4 +127,4 @@ class Sort_Speed():
             f"Array sizes: {self.arr_len}\n" + \
             f"Iterations: {self.reps}\n" + \
             "Data: {} range {}-{}\n".format(("Reversed" if reversed else "Random"), self.data_range[0], self.data_range[1]) + \
-            f"Average sorting time: {np.mean(exec_time):.7f}s\n"
+            f"Average sorting time: {np.mean(exec_time):.7f}s"
