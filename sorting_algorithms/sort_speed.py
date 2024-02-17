@@ -11,14 +11,15 @@ class Sort_Speed():
 
     Attributes:
         funct (function): a function to be tested
-        reps (int): number of repetitions
-        data_range: range of values for the data set
-        arr_len: array length of data set
+        reps (int): number of repetitions for the test, default 10000
+        data_range: range of values (as a tuple) for the data set,
+                    default (10, 100)
+        arr_len: array length of the data set, default 20
 
     Methods:
-        __init__: initialises a Sort_Speed instance
-        speed_test: runs a function over a random set of data and
-            times execution time
+        __init__: initialises a Sort_Speed instance, with give attributes
+        speed_test: avarages the time taken for an algorithm to sort random
+                    sets of data
     """
 
     def __init__(self, funct, reps=10000, data_range=(10, 100), arr_len=20):
@@ -78,7 +79,7 @@ class Sort_Speed():
 
     @arr_len.setter
     def arr_len(self, arr_len):
-        """Set length of the arrays"""
+        """Set arr_len"""
 
         a_typ = type(arr_len)
         if a_typ is not int and a_typ is not tuple and a_typ is not list and a_typ is not set:
@@ -96,6 +97,12 @@ class Sort_Speed():
     def speed_test(self, reversed=False):
         """
         Return average execution time of a function on random data sets
+
+        This method will iteratively generate random arrays of given sizes
+        and fill them with a given range of values. It will then time an
+        algorithm as it sorts the data. It will then return a string containing
+        the average time it took the algorithm to sort the data and also
+        details about the conditions the test was performed in.
 
         Args:
             reversed (bool): flag for using data sorted in reverse
