@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
-"""Module for selection_sort"""
+"""
+Module for selection_sort
+
+Performance
+-----------
+Worst-case : O(n^2) comparisons, O(n) swaps
+Best-case : O(n^2) comparisons, O(1) swaps
+Average : O(n^2) comparisons, O(n) swaps
+
+Space
+-----
+Worst-case : O(1) auxiliary
+"""
 from sort_speed import Sort_Speed
 from random import randint
 
 
-def selection_sort(array):
-    print(array)
+def selection_sort(array: list[int]) -> None:
     for g in range(0, (len(array) - 1)):
         min = g
         for h in range(g + 1, len(array)):
@@ -16,8 +27,6 @@ def selection_sort(array):
             b = array[g]
             array[g] = array[min]
             array[min] = b
-
-    print(array)
 
 
 if __name__ == "__main__":

@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
-"""Module for insertion_sort"""
+"""
+Module for insertion_sort
+
+Performance
+-----------
+Worst-case : O(n^2) comparisons and swaps
+Best-case : O(n) comparisons, O(1) swaps
+Average : O(n^2) comparisons and swaps
+
+Space
+-----
+Worst-case : O(n) total, O(1) auxiliary
+"""
 from sort_speed import Sort_Speed
 
 
-def insertion_sort(array):
+def insertion_sort(array: list[int]) -> None:
     for i in range(1, len(array)):
         k = array[i]
         j = i

@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
-"""Module for cocktailshaker_sort a variation of bubble sort"""
+"""
+Module for cocktailshaker_sort a variation of bubble sort
+
+Performance
+-----------
+Worst-case : O(n^2)
+Best-case : O(n)
+Average : O(n^2)
+
+Space
+-----
+Worst-case : O(1) auxiliary
+"""
 from sort_speed import Sort_Speed
 
 
-def cocktailshaker_sort(array):
+def cocktailshaker_sort(array: list[int]) -> None:
     """
     A variation of bubble sort that operates bi-directionally
     """

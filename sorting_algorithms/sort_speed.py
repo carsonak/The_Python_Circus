@@ -3,6 +3,7 @@
 import numpy as np
 from time import perf_counter
 from random import randint
+import typing
 
 
 class Sort_Speed():
@@ -22,7 +23,11 @@ class Sort_Speed():
                     sets of data
     """
 
-    def __init__(self, funct, reps=10000, data_range=(10, 100), arr_len=20):
+    def __init__(self,
+                 funct: typing.Callable[[list[int]], None],
+                 reps: int = 10000,
+                 data_range: int | tuple[int, int] = (10, 99),
+                 arr_len: int = 20):
         self.funct = funct
         self.reps = reps
         self.data_range = data_range
@@ -94,15 +99,15 @@ class Sort_Speed():
 
         self.__alen = arr_len
 
-    def speed_test(self, reversed=False):
+    def speed_test(self, reversed=False) -> str:
         """
         Return average execution time of a function on random data sets
 
         This method will iteratively generate random arrays of given sizes
-        and fill them with a given range of values. It will then time an
-        algorithm as it sorts the data. It will then return a string containing
-        the average time it took the algorithm to sort the data and also
-        details about the conditions the test was performed in.
+        and fill them with random values of a given range. It then times a
+        sorting algorithm with the data.
+        It returns a string with information such as the average sorting time
+        for the algorithms, number of iterations done, what data was used etc.
 
         Args:
             reversed (bool): flag for using data sorted in reverse
