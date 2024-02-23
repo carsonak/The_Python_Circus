@@ -24,7 +24,7 @@ def cocktailshaker_sort(array: ndarray):
     top, bot = len(array), 1
     new_top, new_bot = top, bot
     swapped = True
-    while swapped:
+    while swapped and top > bot:
         swapped = False
         for g in range(bot, top):
             if array[g - 1] > array[g]:
