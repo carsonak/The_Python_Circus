@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 class Solution:
-    """Solution"""
+    """LEETCODE"""
 
     def longestCommonPrefix(self, strs: list[str]) -> str:
         """Return the longest common prefix of a list of strings"""
