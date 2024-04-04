@@ -1,5 +1,6 @@
 # ignore vscode config files
 .vscode
 
-# ignore __pycache__ directory
-__pycache__/
+# ignore python temp files
+__pycache__
+.mypy_cache

@@ -49,7 +49,7 @@ class Solution:
 
 
 if __name__ == "__main__":
-    def test_isometric(s: str, t: str) -> None:
+    def test_isIsomorphic(s: str, t: str) -> None:
         """Test isIsomorphic."""
         sol = Solution()
         if sol.isIsomorphic(s, t):
@@ -57,10 +57,10 @@ if __name__ == "__main__":
         else:
             print(f"False: '{s:s}' - '{t:s}'")
 
-    test_isometric("egg", "add")  # True
-    test_isometric("woah", "woah")  # True
-    test_isometric("title", "paper")  # True
-    test_isometric("spoon", "gloom")  # True
-    test_isometric("apple", "bbnbm")  # False
-    test_isometric("badc", "baba")  # False
-    test_isometric("foo", "bar")  # False
+    test_isIsomorphic("egg", "add")  # True
+    test_isIsomorphic("woah", "woah")  # True
+    test_isIsomorphic("title", "paper")  # True
+    test_isIsomorphic("spoon", "gloom")  # True
+    test_isIsomorphic("apple", "bbnbm")  # False
+    test_isIsomorphic("badc", "baba")  # False
+    test_isIsomorphic("foo", "bar")  # False
