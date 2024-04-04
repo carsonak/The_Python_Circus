@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 """Module for Doubly Linked Node class."""
-from typing import Callable
+from typing import Callable, Optional
 
 
 class DoublyLinkedNode:
     """A doubly linked list node."""
 
-    def __init__(self, val=None, next: "DoublyLinkedNode" | None = None,
-                 prev: "DoublyLinkedNode" | None = None) -> None:
+    def __init__(self, val=None, next: Optional["DoublyLinkedNode"] = None,
+                 prev: Optional["DoublyLinkedNode"] = None) -> None:
         """Initialise instance variables.
 
         Args:
@@ -20,11 +20,11 @@ class DoublyLinkedNode:
         self.prev = prev
 
     @property
-    def next(self) -> "DoublyLinkedNode" | None:
+    def next(self) -> Optional["DoublyLinkedNode"]:
         return self.__next
 
     @next.setter
-    def next(self, next_node: "DoublyLinkedNode" | None) -> None:
+    def next(self, next_node: Optional["DoublyLinkedNode"]) -> None:
         """Set the value of next."""
         if not isinstance(next_node, (self.__class__, None.__class__)):
             raise TypeError(f"next node must be an instance of {type(self)}")
@@ -32,11 +32,11 @@ class DoublyLinkedNode:
             self.__next = next_node
 
     @property
-    def prev(self) -> "DoublyLinkedNode" | None:
+    def prev(self) -> Optional["DoublyLinkedNode"]:
         return self.__prev
 
     @prev.setter
-    def prev(self, prev_node: "DoublyLinkedNode" | None) -> None:
+    def prev(self, prev_node: Optional["DoublyLinkedNode"]) -> None:
         """Set the value of prev."""
         if not isinstance(prev_node, (self.__class__, None.__class__)):
             raise TypeError(
@@ -68,8 +68,8 @@ class DoublyLinkedNode:
 
         node.next = self
 
-    def sort_insert(self, head: "DoublyLinkedNode" | None,
-                    key: Callable[["DoublyLinkedNode"], int] | None = None) -> None:
+    def sorted_insert(self, head: Optional["DoublyLinkedNode"],
+                      key: Callable[["DoublyLinkedNode"], int] | None = None) -> "DoublyLinkedNode":
         """Insert instance node in a sorted linked list."""
 
         if isinstance(head, self.__class__):
@@ -94,6 +94,8 @@ class DoublyLinkedNode:
 
         while head.prev:
             head = head.prev
+
+        return head
 
     def remove(self):
         """Remove instance node from linked list."""
