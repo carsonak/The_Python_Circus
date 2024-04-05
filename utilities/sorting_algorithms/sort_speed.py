@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Module for Sort_Speed"""
+"""Module for Sort_Speed."""
 import numpy as np
 from time import perf_counter
 from random import randint
@@ -7,8 +7,7 @@ import typing
 
 
 class Sort_Speed():
-    """
-    Sort_Speed class: methods and attributes for timing sorting algorithms
+    """Sort_Speed class: methods and attributes for timing sorting algorithms.
 
     Attributes:
         funct (Callable): a function to be tested
@@ -37,8 +36,7 @@ class Sort_Speed():
 
     @funct.setter
     def funct(self, funct):
-        """Set the function to test"""
-
+        """Set the function to test."""
         if type(funct) is not type(lambda x: x):
             raise TypeError("funct must be a function")
 
@@ -50,7 +48,7 @@ class Sort_Speed():
 
     @reps.setter
     def reps(self, reps):
-        """Set number of reps"""
+        """Set number of reps."""
 
         if type(reps) is not int:
             raise TypeError("reps must be an int")
@@ -66,7 +64,7 @@ class Sort_Speed():
 
     @data_range.setter
     def data_range(self, data_range):
-        """Set the data_range"""
+        """Set the data_range."""
 
         if type(data_range) is not tuple:
             raise TypeError("data_range must be a tuple of 2 integers")
@@ -82,7 +80,7 @@ class Sort_Speed():
 
     @arr_len.setter
     def arr_len(self, arr_len):
-        """Set arr_len"""
+        """Set arr_len."""
 
         a_typ = type(arr_len)
         if a_typ is not int and a_typ is not tuple and a_typ is not list and a_typ is not set:
@@ -98,8 +96,7 @@ class Sort_Speed():
         self.__alen = arr_len
 
     def speed_test(self, reversed=False):
-        """
-        Return average execution time of a function on random data sets
+        """Return average execution time of a function on random data sets.
 
         This method will iteratively generate random arrays of given sizes
         and fill them with random values of a given range. It then times a

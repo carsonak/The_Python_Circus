@@ -33,7 +33,7 @@ if __name__ == "__main__":
     o = Sort_Speed(selection_sort)
     print(o.speed_test(), end="\n\n")
 
-    print(o.speed_test(1), end="\n\n")
+    print(o.speed_test(True), end="\n\n")
 
     o.arr_len = (5, 50)
     print(o.speed_test())

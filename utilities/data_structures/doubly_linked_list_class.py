@@ -1,19 +1,20 @@
 #!/usr/bin/python3
 """Module for Doubly Linked Node class."""
+from collections.abc import Hashable
 from typing import Callable, Optional
 
 
 class DoublyLinkedNode:
     """A doubly linked list node."""
 
-    def __init__(self, val=None, next: Optional["DoublyLinkedNode"] = None,
+    def __init__(self, val: Hashable | None = None, next: Optional["DoublyLinkedNode"] = None,
                  prev: Optional["DoublyLinkedNode"] = None) -> None:
         """Initialise instance variables.
 
         Args:
-            val[any] - data to be held in the list.
-            next[DoublyLinkedNode | None] - the next node in the list.
-            prev[DoublyLinkedNode | None] - the previous node in the list.
+            val (any): data to be held in the list.
+            next (DoublyLinkedNode | None): the next node in the list.
+            prev (DoublyLinkedNode | None): the previous node in the list.
         """
         self.val = val
         self.next = next
@@ -75,13 +76,13 @@ class DoublyLinkedNode:
         if isinstance(head, self.__class__):
             walk: "DoublyLinkedNode" = head
             if key is None:
-                while walk.next and self >= walk:
+                while walk.next and walk <= self:
                     walk = walk.next
             else:
-                while walk.next and key(self) >= key(walk):
+                while walk.next and key(walk) <= key(self):
                     walk = walk.next
 
-            if walk.next is None and (self >= walk if key is None else key(self) >= key(walk)):
+            if walk.next is None and (walk <= self if key is None else key(walk) <= key(self)):
                 self.insert_after(walk)
             else:
                 self.insert_before(walk)
@@ -108,21 +109,39 @@ class DoublyLinkedNode:
         self.next = None
         self.prev = None
 
-    def __gt__(self, __other: object) -> bool:
-        if isinstance(__other, self.__class__):
-            return self.val > __other.val
+    @classmethod
+    def display(cls, head: Optional["DoublyLinkedNode"]) -> None:
+        """Print a string of all the items in a linked list.
+
+        Args:
+            head (DoublyLinkedNode): head of the linked list.
+        """
+        if not isinstance(head, (cls, None.__class__)):
+            raise TypeError(
+                f"head must be an instance of {cls.__name__} or None")
+
+        llst: str = ""
+        while head:
+            llst += str(head.val) + " -> "
+            head = head.next
+
+        print(llst.strip(" -> ") if llst else None)
+
+    def __gt__(self, other: object) -> bool:
+        if isinstance(other, self.__class__):
+            return self.val > other.val
         else:
             return NotImplemented
 
-    def __ge__(self, __other: object) -> bool:
-        if isinstance(__other, self.__class__):
-            return self.val >= __other.val
+    def __ge__(self, other: object) -> bool:
+        if isinstance(other, self.__class__):
+            return self.val >= other.val
         else:
             return NotImplemented
 
-    def __eq__(self, __other: object) -> bool:
-        if isinstance(__other, self.__class__):
-            return self.val == __other.val
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, self.__class__):
+            return self.val == other.val
         else:
             return NotImplemented
 

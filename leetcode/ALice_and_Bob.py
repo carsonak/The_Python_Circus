@@ -23,12 +23,17 @@ class Solution:
 
     def numberOfPairs(self, points: list[list[int]]) -> int:
         """Return number of possible Alice and Bob's private spaces."""
-        head: DoublyLinkedNode | None = None
+        hx: DoublyLinkedNode | None = None
+        hy: DoublyLinkedNode | None = None
         for p in points:
-            temp = DoublyLinkedNode(tuple(p))
-            head = temp.sorted_insert(head)
+            x_sorted = DoublyLinkedNode(tuple(p))
+            hx = x_sorted.sorted_insert(hx, key=lambda nd: nd.val[0])
+            y_sorted = DoublyLinkedNode(tuple(p))
+            hy = y_sorted.sorted_insert(hy, key=lambda nd: nd.val[1])
 
-        return 0
+        pairs: int = 0
+        # Iterate through the sorted points and while counting valid points for Alice and Bob
+        return pairs
 
 
 if __name__ == "__main__":
