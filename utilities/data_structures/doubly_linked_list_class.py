@@ -76,13 +76,13 @@ class DoublyLinkedNode:
         if isinstance(head, self.__class__):
             walk: "DoublyLinkedNode" = head
             if key is None:
-                while walk.next and walk <= self:
+                while walk.next and walk < self:
                     walk = walk.next
             else:
-                while walk.next and key(walk) <= key(self):
+                while walk.next and key(walk) < key(self):
                     walk = walk.next
 
-            if walk.next is None and (walk <= self if key is None else key(walk) <= key(self)):
+            if walk.next is None and (walk < self if key is None else key(walk) < key(self)):
                 self.insert_after(walk)
             else:
                 self.insert_before(walk)
