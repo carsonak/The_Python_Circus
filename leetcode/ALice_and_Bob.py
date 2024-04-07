@@ -15,6 +15,7 @@ Constraints:
     All points[i] are distinct.
 """
 import unittest
+import random
 
 
 class Solution:
@@ -141,8 +142,8 @@ if __name__ == "__main__":
                    [0, 4], [-5, 5], [1, 5], [-5, -1], [1, -1], [1, 5]]
             self.assertEqual(self.sol.numberOfPairs(pts), 43)
 
-        def test_random(self) -> None:
-            """Test random vectors."""
+        def test_mix(self) -> None:
+            """Test mix vectors."""
             pts = [[0, 1], [4, 5], [10, 11], [0, 0], [2, 3], [6, 2], [8, 6],
                    [4, 1], [6, 7], [7, 7], [6, 3], [8, 3], [9, 3]]
             self.assertEqual(self.sol.numberOfPairs(pts), 13)
@@ -159,4 +160,15 @@ if __name__ == "__main__":
                 [[-4, 4], [-3, 3],  [-2, 2], [-1, 1], [0, 0], [1, -1],
                  [2, -2], [3, -3], [4, -4]]), 8)
 
+    def print_numberOfPairs(list_of_points: list[list[int]]):
+        """Print number of pairs."""
+        sol: Solution = Solution()
+        print(
+            f"Pairs: {sol.numberOfPairs(list_of_points)} :Points: {list_of_points}")
+
     unittest.main()
+    # for i in range(20):
+    #     rans = set((random.randint(-100, 100), random.randint(-100, 100))
+    #                for v in range(random.randint(5, 12)))
+    #     pts = [list(v) for v in rans]
+    #     print_numberOfPairs(pts)
