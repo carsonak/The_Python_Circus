@@ -147,16 +147,16 @@ if __name__ == "__main__":
                    [4, 1], [6, 7], [7, 7], [6, 3], [8, 3], [9, 3]]
             self.assertEqual(self.sol.numberOfPairs(pts), 13)
 
-        def test_negSlope(self) -> None:
-            """Test vectors on a negative gradient slope."""
+        def test_yEqualx(self) -> None:
+            """Test vectors on a y=x slope."""
             self.assertEqual(self.sol.numberOfPairs(
-                [[1, 1], [2, 2], [3, 3]]), 0)
+                [[-4, -4], [-3, -3],  [-2, -2], [-1, -1], [0, 0], [1, 1],
+                 [2, 2], [3, 3], [4, 4]]), 0)
 
-        # def test_leetcodeSamples(self) -> None:
-        #     """Test leetcode test cases."""
-        #     self.assertEqual(self.sol.numberOfPairs(
-        #         [[1, 5], [1, 0], [6, 0]]), 2)
-        #     self.assertEqual(self.sol.numberOfPairs(
-        #         [[6, 2], [4, 4], [2, 6]]), 2)
+        def test_negyEqualx(self) -> None:
+            """Test vectors on a y=-x slope."""
+            self.assertEqual(self.sol.numberOfPairs(
+                [[-4, 4], [-3, 3],  [-2, 2], [-1, 1], [0, 0], [1, -1],
+                 [2, -2], [3, -3], [4, -4]]), 8)
 
     unittest.main()
