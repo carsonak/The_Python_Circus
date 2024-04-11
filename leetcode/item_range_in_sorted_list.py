@@ -28,7 +28,7 @@ import unittest
 
 
 class Solution:
-    """"LEETCODE."""
+    """LEETCODE."""
 
     def searchRange(self, nums: list[int], target: int) -> list[int]:
         """Return range of a number in a sorted list.
@@ -44,7 +44,7 @@ class Solution:
         range: list[int] = [-1, -1]
         end: int = len(nums) - 1
         start: int = 0
-        if nums[start] <= target <= nums[end]:
+        if nums and nums[start] <= target <= nums[end]:
             while nums[end] > target:
                 mid: int = int((end - start) / 2)
                 if mid == 0:
@@ -82,6 +82,10 @@ if __name__ == "__main__":
         def setUp(self) -> None:
             """Create instance of Solution."""
             self.sol: Solution = Solution()
+
+        def test_emptyList(self) -> None:
+            """Test empty list."""
+            self.assertEqual(self.sol.searchRange([], 1), [-1, -1])
 
         def test_oneItem_extremes_oddLength(self) -> None:
             """Test range of one item in sorted list on the extremes."""
