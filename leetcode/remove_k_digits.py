@@ -34,32 +34,39 @@ class Solution:
 
         new_num: list[str] = []
         for idx, val in enumerate(num):
-            if k:
+            if k > 0:
                 if idx + 1 < digits and num[idx + 1] >= val:
                     new_num.append(val)
+                elif idx + 1 >= digits:
+                    new_num.append(val)
+                else:
                     k -= 1
             else:
                 new_num += list(num[idx:])
                 break
-        else:
-            new_num.append(val)
 
         num_str = "".join(new_num).lstrip("0")
         if num_str and k:
             new_num.clear()
-            for i in range(len(num_str) - 2, -1, -1):
-                if k:
-                    if i - 1 >= 0 and num_str[i] >= num_str[i - 1]:
-                        new_num.insert(0, num_str[i])
+            for idx in range(len(num_str) - 1, -1, -1):
+                if k > 0:
+                    if idx - 1 >= 0 and num_str[idx] < num_str[idx - 1]:
+                        new_num.insert(0, num_str[idx])
+                    else:
                         k -= 1
                 else:
-                    new_num = list(num[:i + 1]) + new_num
+                    new_num = list(num_str[:idx + 1]) + new_num
                     break
 
-        num_str = "".join(new_num).lstrip("0")
+            num_str = "".join(new_num).lstrip("0")
+
         return num_str if num_str else "0"
 
 
 if __name__ == "__main__":
     sol = Solution()
-    print(sol.removeKdigits("1432219", 3))
+    print(sol.removeKdigits("1432219", 3))  # 1219
+    print(sol.removeKdigits("112", 1))  # 11
+    print(sol.removeKdigits("5337", 2))  # 33
+    print(sol.removeKdigits("12345", 3))  # 12
+    print(sol.removeKdigits("54321", 3))  # 21
