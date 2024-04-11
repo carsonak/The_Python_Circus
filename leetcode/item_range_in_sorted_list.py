@@ -76,7 +76,7 @@ class Solution:
 
 
 if __name__ == "__main__":
-    class searchRangeTest(unittest.TestCase):
+    class TestsearchRange(unittest.TestCase):
         """Tests for searchRange."""
 
         def setUp(self) -> None:
