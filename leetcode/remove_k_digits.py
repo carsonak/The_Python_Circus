@@ -35,7 +35,7 @@ class Solution:
         new_num: list[str] = []
         for idx, val in enumerate(num):
             if k > 0:
-                if idx + 1 < digits and num[idx + 1] >= val:
+                if idx + 1 < digits and val <= num[idx + 1]:
                     new_num.append(val)
                 elif idx + 1 >= digits:
                     new_num.append(val)
@@ -50,7 +50,7 @@ class Solution:
             new_num.clear()
             for idx in range(len(num_str) - 1, -1, -1):
                 if k > 0:
-                    if idx - 1 >= 0 and num_str[idx] < num_str[idx - 1]:
+                    if idx - 1 > 0 and num_str[idx] < num_str[idx - 1]:
                         new_num.insert(0, num_str[idx])
                     else:
                         k -= 1
@@ -70,3 +70,4 @@ if __name__ == "__main__":
     print(sol.removeKdigits("5337", 2))  # 33
     print(sol.removeKdigits("12345", 3))  # 12
     print(sol.removeKdigits("54321", 3))  # 21
+    print(sol.removeKdigits("12131451", 3))  # 11141
