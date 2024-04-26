@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+"""Module for linked_list_mid."""
 # /usr/bin/env python3
 """Leetcode: find the middle of a linked list"""
 from typing import Optional

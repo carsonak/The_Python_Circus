@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+"""Module for sieve_eratosthenes."""
 from math import isqrt
 
 
