@@ -7,7 +7,7 @@ from itertools import zip_longest
 from typing import Optional
 import os
 
-from utilities.editing.file_handlers.filesystem_bw_list import FileSystemBWlist
+from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
 
 
 class PyFileTracker:

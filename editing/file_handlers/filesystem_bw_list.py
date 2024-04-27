@@ -3,7 +3,7 @@
 
 from collections.abc import Iterable
 
-from utilities.editing.file_handlers.blackwhite_list import BlackWhitelist
+from editing.file_handlers.blackwhite_list import BlackWhitelist
 
 
 class FileSystemBWlist:
