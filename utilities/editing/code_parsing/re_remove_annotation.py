@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Module for remove_type_annotations.
+"""Module for re_annotation_remover.
 
 INCOMPLETE
 """

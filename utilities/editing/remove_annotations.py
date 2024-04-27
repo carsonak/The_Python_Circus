@@ -2,10 +2,10 @@
 """Module for remove_annotations."""
 
 
-from utilities.editing.file_handler.blackwhite_list import BlackWhitelist
-from utilities.editing.file_handler.filesystem_bw_list import FileSystemBWlist
-from utilities.editing.file_handler.pyfile_tracker import PyFileTracker
-from utilities.editing.annotations.type_hints_remover import TypeHintsRemover
+from utilities.editing.code_parsing.ast_remove_annotation import TypeHintsRemover
+from utilities.editing.file_handlers.blackwhite_list import BlackWhitelist
+from utilities.editing.file_handlers.filesystem_bw_list import FileSystemBWlist
+from utilities.editing.file_handlers.pyfile_tracker import PyFileTracker
 
 
 def main() -> None:
