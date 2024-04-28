@@ -1,61 +1,86 @@
 #!/usr/bin/python3
-"""Module for re_annotation_remover.
-
-INCOMPLETE
-"""
+"""Module for re_annotation_remover."""
 
 import regex
 import os
 import json
-
+from editing.file_handlers.pyfile_tracker import PyFileTracker
 
 class PyRegexEdit:
     """Class for PyRegexEdit."""
 
     __annotations_pattern: str = r"""
     ## Return Value Type Annotations ##
-    # Must be preceeded by ' ->'
-    (?P<returns>\ ->
-        (?P<annotation>\ #
+    (?P<return>\ ->
+        (?P<annotation> \ # space
             # Type name should be a valid Python name
-            (?P<opt_unquoted_quoted>[[:alpha:]_]\w*|["'][[:upper:]_]\w+["'])
-            # Followed by a '[', '|' or nothing
+            (?P<opt_unquoted_quoted>
+                (?P<py_var> [[:alpha:]_]\w*?) | [\"\'] [[:upper:]_]\w+ [\'\"])
             (?P<opt_brace_slash_none>
-                # If a brace match valid type annotations till the last ']'
-                # in the sequence
-                (?P<sqr_braces>\[ (?P&opt_unquoted_quoted)
-                    # Option if comma,
-                    (?P<opt_comma_brace_slash_loop>,
-                        # Check if ' ...' other wise match another annotation
-                        (?P<opt_elipses_annotation>\ \.{3} | (?P&annotation)) |
-                    # if a brace match another brace sequence
+                # If '[' recursively match annotations till the braces balance
+                (?P<sqr_braces> \[ (?P&opt_unquoted_quoted)
+                    # Recursion will be triggered after a '[', ',' or '|'
+                    (?P<opt_comma_brace_slash_loop> ,
+                        # If ', ...' break out of <opt_comma_brace_slash_loop>
+                        # otherwise match another <annotation>.
+                        (?P<opt_elipses_annotation> \ \.{3} | (?P&annotation)) |
+                    # If '[' match another <sqr_braces>
                     (?P&sqr_braces) |
-                    # if ' |' match another annotation
+                    # if ' |' match another <annotation>
                     \ \|(?P&annotation))*
+                # Else match a ']' and break out of <sqr_braces>
                 \]) |
-                # Else match '| ' and more valid type annotations
+                # Else match '| ' and another <annotation>
                 \ \|(?P&annotation)
             )?
         )
     ): |
-    ## Function Parameters and Variables Type Annotations ##
-    # Skip through any dictionaries before trying to match an annotation
-    (?:{[^\{\}]*} | (?P<params_vars>:(?P&annotation)) (?:[,\)] | \ =))
+    (?:
+        # Skip dictionaries to avoid false positives
+        # White space characters are limmited to 32
+        (?P<dict> \{\s{0,32}
+            # Recursively match elements till the braces balance, if present
+            (?P<elements>
+                # Possible key variants
+                (?P<key>
+                    (?P<str> (?:r|f)?
+                        (?:
+                            ["'].+?(?<!\\['"])["'] |
+                            ["']{3} [\w\W]+? (?<!\\['"])["']{3}
+                        )
+                    ) |
+                    (?&py_var) |
+                    (?P<num> \d+?(?:\.\d+)?) |
+                    (?P<set_tup_lst> [\[\{\(]
+                        (?: [^\[\]\{\}\(\)]+? | (?&set_tup_lst) )*+
+                    [\]\}\)] )
+                ):\ # space
+                # Possible value variants
+                (?P<val>
+                    (?&dict) | (?&str) | (?&py_var)(?&set_tup_lst)? |
+                    (?&num) | (?&set_tup_lst)
+                )
+                # If ',' match another <elements>
+                (?:, \s{1,32} (?&elements))?
+            # Match the closing '}'
+            )? ,? \s{0,32} \}
+        ) |
+        ## Function Parameters and Variables Type Annotations ##
+        (?P<arg_var> :(?&annotation)) (?:[,\)] | \ =)
+    )
     """
-    __directives_pattern: str = r"""\#(?P<directives>\ type:\ .+)$"""
+    __directives_pattern: str = r"""\#(?P<directive>\ type:\ .+)$"""
     __imports_pattern: str = r"""
-    (?P<imports>^\ *(?:import\ typing | from\ typing(?:\.\w+)*\ import\ \w+(?:,\ \w+)*))
+    (?P<import>^[\ \t]*
+        (?:import\ typing | from\ typing(?:\.\w+)*\ import\ \w+(?:,\ \w+)*)
+    )
     """
 
-    def __init__(self, py_files: str | tuple[str, ...] = (),
-                 folders: str | tuple[str, ...] = (),
-                 flags: int = 0) -> None:
+    def __init__(self, file_tracker: PyFileTracker | None = None, flags: int = 0) -> None:
         """Initialise instance attributes."""
         self.__pattern_object: regex.Pattern | None = None
-        self.__folders_dict: dict[str, tuple[str, ...]] = {}
-        self.py_files: str | tuple[str, ...] = py_files  # type: ignore
-        self.folders: str | tuple[str, ...] = folders  # type: ignore
         self.flags: int = flags
+        self.files = file_tracker
 
     @property
     def flags(self) -> int:
@@ -71,78 +96,25 @@ class PyRegexEdit:
         self.__flags: int = val
 
     @property
-    def py_files(self) -> tuple[str, ...]:
-        """Return files to be processed."""
-        return self.__py_files
+    def files(self) -> PyFileTracker | None:
+        """A python file tracker."""
+        return self.__files
 
-    @py_files.setter
-    def py_files(self, py_files: str | tuple[str, ...]) -> None:
-        """Check for .py file extensions and store the paths.
+    @files.setter
+    def files(self, file_tracker: PyFileTracker | None) -> None:
+        """Initialise a python file tracker."""
+        if file_tracker and not isinstance(file_tracker, PyFileTracker):
+            raise TypeError("file_tracker is not an instance of PyFileTracker")
 
-        Args:
-            py_files [str | tuple[str, ...]]: It is either a path to a single
-            python script or a tuple of multiple paths.
-        """
-        if type(py_files) is str:
-            if os.path.splitext(py_files)[1] == ".py":
-                self.__py_files = tuple([py_files])
-            else:
-                raise ValueError("filename must end with .py")
-        elif type(py_files) is tuple:
-            file_list: list[str] = []
-            for f in py_files:
-                if type(f) is str and os.path.splitext(f)[1] == ".py":
-                    file_list.append(f)
-            else:
-                self.__py_files = tuple(file_list)
-        else:
-            raise TypeError("py_file must be a string or a tuple of strings")
-
-        p_len: int = len(self.__py_files)
-        if p_len:
-            self.__folders_dict["00 unknown"] = self.__py_files
-            print(f"Files in cache: {p_len}")
-
-    @property
-    def folders(self) -> tuple[str, ...]:
-        """Return directories to be processed."""
-        return self.__folders
-
-    @folders.setter
-    def folders(self, folders: str | tuple[str, ...]) -> None:
-        """Extract Python files from directories and store the paths.
-
-        Args:
-            folders [str | tuple[str, ...]]: It is either a path to a single
-            directory with python scripts or a tuple with multiple paths.
-        """
-        if type(folders) is str:
-            self.__folders = tuple([folders])
-        elif type(folders) is tuple:
-            self.__folders = tuple([f for f in folders if type(f) is str])
-        else:
-            raise TypeError("folders must be a string or a tuple of strings.")
-
-        for dirname in self.__folders:
-            file_list: list[str] = []
-            with os.scandir(dirname) as folder:
-                for entry in folder:
-                    ext: str = os.path.splitext(entry.path)[1]
-                    if entry.is_file() and ext == ".py":
-                        file_list.append(entry.path)
-                else:
-                    self.__folders_dict[dirname] = tuple(file_list)
-                    self.py_files = tuple([*self.py_files, *file_list])
-
-        d_len: int = len(self.__folders_dict)
-        if d_len > 1 or "00 unknown" not in self.__folders_dict:
-            print("Discovered {} files in {} directories.".format(
-                len(self.py_files), d_len))
+        self.__files = file_tracker
 
     def sub(self, regex_str: str = "", repl: str = "", flags: int = 0) -> None:
         """Substitute repl whenever regex_str matches the text in the file."""
+        if not self.files:
+            return
+
         self.__pattern_object = self.compile(regex_str, flags)
-        for filename in self.py_files:
+        for filename in self.files.py_files:
             with open(filename, "r", encoding="utf-8") as file:
                 contents: str = file.read()
 
@@ -161,19 +133,20 @@ class PyRegexEdit:
                 compile_str: str = regex_str
                 self.flags = flags
             else:
-                compile_str = self.__annotations_pattern + r"|" +\
-                    self.__directives_pattern + r"|" +\
-                    self.__imports_pattern
-                self.flags = int(regex.MULTILINE |
-                                 regex.VERBOSE | regex.V1 | flags)
+                compile_str = r"|".join([self.__annotations_pattern,
+                                         self.__directives_pattern,
+                                         self.__imports_pattern])
+                self.flags = int(regex.MULTILINE | regex.VERBOSE |
+                                 regex.V1 | flags)
 
-            self.__pattern_object = regex.compile(
-                compile_str, flags=self.flags)
+            self.__pattern_object = regex.compile(compile_str,
+                                                  flags=self.flags)
 
         return self.__pattern_object
 
     def capturesdict_files(self, regex_str: str = "",
-                           flags: int = 0, file_time: float | None = None) -> dict[str, dict[str, list[str]]]:
+                           flags: int = 0, file_time: float | None = None
+                           ) -> dict[str, dict[str, list[str]]]:
         """Return a dict of filenames with a dict of named capturing groups
         and their list of captures.
         """
@@ -196,7 +169,7 @@ class PyRegexEdit:
     def reset(self) -> None:
         """Reset all instance attributes."""
         self.flags = 0
-        self.py_files = ()
+        self.files = None
         self.folders = ()
         self.__pattern_object = None
         self.__folders_dict = {}
@@ -205,8 +178,7 @@ class PyRegexEdit:
 def main() -> None:
     """Entry Point."""
     dirs: tuple[str, ...] = ()
-    i = PyRegexEdit(folders=("models", "tests/test_models",
-                    "models/engine", "tests/test_models/test_engine"))
+    i = PyRegexEdit()
     # i.sub()
     clean_dict: dict[str, dict[str, list[str]]] = {}
     for file_name, captures in i.capturesdict_files().items():

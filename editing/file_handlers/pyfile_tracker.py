@@ -31,7 +31,7 @@ class PyFileTracker:
             whitelist: a list of file/directory basenames to search for in a
                 directory.
         """
-        self.__file_cache: dict[str, ast.AST | None] = {}
+        self.__file_cache: dict[str, dict[str, ast.AST | str | None]] = {}
         self.depth = max_descent
         self.py_files = py_files
         self.directory = directory
@@ -105,9 +105,9 @@ class PyFileTracker:
                 "whitelist must be an instance of FileSystemBWlist or None")
 
     @property
-    def py_files(self) -> Iterable[str]:
-        """An iterable of files to be processed."""
-        return self.__file_cache.keys()
+    def py_files(self) -> Iterable:
+        """An iterable of files and their contents."""
+        return self.__file_cache.items()
 
     @py_files.setter
     def py_files(self, py_files: Iterable[str]) -> None:
@@ -135,7 +135,7 @@ class PyFileTracker:
                 os.path.isfile(file) and
                 os.path.splitext(file)[1] == ".py"
             ):
-                self.__file_cache[file] = None
+                self.__file_cache[file] = {"contents": None, "tree": None}
 
     @property
     def directory(self) -> str:
@@ -165,6 +165,13 @@ class PyFileTracker:
                                                 self.whitelist,
                                                 self.blacklist):
             self.add_files(files)
+
+    def __getitem__(self, filename: str) -> dict[str, None | str | ast.AST]:
+        """Return"""
+        if type(filename) is not str:
+            raise TypeError("filename must be a str")
+
+        return ReadOnlyDict(self.__file_cache[filename])
 
     @staticmethod
     def walkdepth(start: str, max_depth: int = -1,
@@ -251,8 +258,65 @@ class PyFileTracker:
                 os.path.isfile(file) and
                 os.path.splitext(file)[1] == ".py"
             ):
-                self.__file_cache[file] = None
+                self.__file_cache[file] = {"contents": None, "tree": None}
 
-    def clear_files(self) -> None:
+    def clear(self) -> None:
         """Clear the py_files cache."""
         self.__file_cache = {}
+
+    def update(self, filename: str,
+               contents: str | None = None,
+               tree: ast.AST | None = None
+               ) -> "ReadOnlyDict[str, None | str | ast.AST]":
+        if filename and type(filename) is not str:
+            raise TypeError("filename must be a string")
+
+        if contents and type(contents) is not str:
+            raise TypeError("contents must be a string")
+
+        if tree and not isinstance(tree, ast.AST):
+            raise TypeError("tree must be an instance of ast.AST")
+
+        self.__file_cache[filename] = {"contents": contents, "tree": tree}
+        return ReadOnlyDict(self.__file_cache[filename])
+
+
+
+class ReadOnlyDict(dict):
+    """A readonly dictionary."""
+
+    def __setitem__(self, key, value) -> None:
+        """Not Modifiable."""
+        raise TypeError("cannot modify ReadOnlyDict")
+
+    def __delitem__(self, key) -> None:
+        """Not Modifiable."""
+        raise TypeError("cannot modify ReadOnlyDict")
+
+    def clear(self) -> None:
+        """Not Modifiable."""
+        raise TypeError("cannot modify ReadOnlyDict")
+
+    def popitem(self) -> tuple:
+        """Not Modifiable."""
+        raise TypeError("cannot modify ReadOnlyDict")
+
+    def pop(self, k, d=None):
+        """Not Modifiable."""
+        raise TypeError("cannot modify ReadOnlyDict")
+
+    def setdefault(self, key, defualt=None) -> None:
+        """Not Modifiable."""
+        raise TypeError("cannot modify ReadOnlyDict")
+
+    def update(self, E, **kwargs) -> None:
+        """Not modifiable."""
+        raise TypeError("cannot modify ReadOnlyDict")
+
+
+if __name__ == "__main__":
+    rd = ReadOnlyDict(key="item", sum="all")
+    print(rd)
+    rd.update(sum="nun", more="items")
+    print(rd)
+    rd.clear()
