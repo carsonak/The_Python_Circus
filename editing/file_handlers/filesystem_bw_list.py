@@ -3,7 +3,13 @@
 
 from collections.abc import Iterable
 
-from editing.file_handlers.blackwhite_list import BlackWhitelist
+try:
+    from editing.file_handlers.blackwhite_list import BlackWhitelist
+except ModuleNotFoundError:
+    from sys import path
+    path.append("/home/line/Github_Repositories/The_Python_Circus")
+    from editing.file_handlers.blackwhite_list import BlackWhitelist
+    del path
 
 
 class FileSystemBWlist:

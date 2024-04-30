@@ -4,14 +4,69 @@
 import ast
 from collections.abc import Iterable, Iterator
 from itertools import zip_longest
-from typing import Optional
 import os
+from typing import Optional
+from types import MappingProxyType
 
-from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
+try:
+    from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
+except ModuleNotFoundError:
+    from sys import path
+    path.append("/home/line/Github_Repositories/The_Python_Circus")
+    from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
+    del path
+
+
+class PyFileData:
+    """Tracker for file data."""
+
+    def __init__(self, contents: str = "", tree: ast.AST | None = None) -> None:
+        self.contents = contents
+        self.tree = tree
+
+    @property
+    def contents(self) -> str:
+        """The contents of a file stored as a dtring."""
+        return self.__contents
+
+    @contents.setter
+    def contents(self, val: str) -> None:
+        """Initialise contents.
+
+        Args:
+            val: file contents as a string.
+
+        Raises:
+            TypeError: val is not a string.
+        """
+        if not isinstance(val, str):
+            raise TypeError("value must be a string")
+
+        self.__contents = val
+
+    @property
+    def tree(self) -> ast.AST | None:
+        """Abstract syntax tree of a Python file."""
+        return self.__tree
+
+    @tree.setter
+    def tree(self, val: ast.AST | None) -> None:
+        """Initialise AST of a file.
+
+        Args:
+            val: the abstract syntax tree of a file.
+
+        Raises:
+            TypeError: val is not an instance of ast.AST or None.
+        """
+        if val and not isinstance(val, ast.AST):
+            raise TypeError("value must be an instance of ast.AST or none")
+
+        self.__tree = val
 
 
 class PyFileTracker:
-    """Tracker for python files being processed."""
+    """Tracker for python files."""
 
     def __init__(self, py_files: Iterable[str] = (), directory: str = "",
                  max_descent: int = -1,
@@ -31,12 +86,13 @@ class PyFileTracker:
             whitelist: a list of file/directory basenames to search for in a
                 directory.
         """
-        self.__file_cache: dict[str, dict[str, ast.AST | str | None]] = {}
-        self.depth = max_descent
+        self.__file_cache: dict[str, PyFileData] = {}
         self.py_files = py_files
-        self.directory = directory
+
+        self.depth = max_descent
         self.blacklist = blacklist
         self.whitelist = whitelist
+        self.directory = directory
 
     @property
     def depth(self) -> int:
@@ -77,11 +133,11 @@ class PyFileTracker:
         Raises:
             TypeError: blacklist is not None or an instance of FileSystemBWlist
         """
-        if isinstance(blacklist, FileSystemBWlist) or blacklist is None:
-            self.__blacklist = blacklist
-        else:
+        if blacklist and not isinstance(blacklist, FileSystemBWlist):
             raise TypeError(
                 "blacklist must be an instance of FileSystemBWlist or None")
+
+        self.__blacklist = blacklist
 
     @property
     def whitelist(self) -> Optional["FileSystemBWlist"]:
@@ -98,26 +154,25 @@ class PyFileTracker:
         Raises:
             TypeError: whitelist is not None or an instance of FileSystemBWlist
         """
-        if isinstance(whitelist, FileSystemBWlist) or whitelist is None:
-            self.__whitelist = whitelist
-        else:
+        if whitelist and not isinstance(whitelist, FileSystemBWlist):
             raise TypeError(
                 "whitelist must be an instance of FileSystemBWlist or None")
 
+        self.__whitelist = whitelist
+
     @property
-    def py_files(self) -> Iterable:
-        """An iterable of files and their contents."""
-        return self.__file_cache.items()
+    def py_files(self) -> Iterable[str]:
+        """An iterable of cached files."""
+        return self.__file_cache.keys()
 
     @py_files.setter
     def py_files(self, py_files: Iterable[str]) -> None:
         """Initialise a cache with paths to python files.
 
-        Initialises a dictionary of python file paths and their modified
-        abstract syntax tree. Any file names that don't exist, don't have a
-        .py extension or an object in the iterable that is not type string,
-        will be ignored.
-        The files stored will not be cleared if directory is changed.
+        Initialises a mapping of filenames to data "contents" and "tree". Any
+        items that are not of type str, not valid filepaths or don't have a
+        .py extension, will be ignored.
+        The filenames will not be affected by an update to directory.
 
         Args:
             py_files: An iterable of file pathnames.
@@ -135,16 +190,16 @@ class PyFileTracker:
                 os.path.isfile(file) and
                 os.path.splitext(file)[1] == ".py"
             ):
-                self.__file_cache[file] = {"contents": None, "tree": None}
+                self.__file_cache[file] = PyFileData()
 
     @property
     def directory(self) -> str:
-        """Current working directory being processed."""
+        """A python project directory."""
         return self.__workingdir
 
     @directory.setter
     def directory(self, directory: str) -> None:
-        """Initialise the working directory and it's python files.
+        """Initialise py_files with files in directory.
 
         The given directory will be searched for python files with depth,
         whitelist and blacklist applied to the search. The resulting files
@@ -164,21 +219,56 @@ class PyFileTracker:
         for root, dirs, files in self.walkdepth(directory, self.depth,
                                                 self.whitelist,
                                                 self.blacklist):
-            self.add_files(files)
+            self.add_files([os.path.pathsep.join([root, file])
+                            for file in files])
 
-    def __getitem__(self, filename: str) -> dict[str, None | str | ast.AST]:
-        """Return"""
+    def __getitem__(self, filename: str) -> PyFileData:
+        """Return a mapping proxy of a file's current data.
+
+        Args:
+            filename: the name of the file to look up for.
+
+        Returns:
+            An instance of PyFileData.
+
+        Raises:
+            TypeError: filename is not a str type
+            KeyError: filename does not exist in py_files.
+        """
         if type(filename) is not str:
             raise TypeError("filename must be a str")
 
-        return ReadOnlyDict(self.__file_cache[filename])
+        return self.__file_cache[filename]
+
+    def __setitem__(self, filename: str, data: PyFileData) -> None:
+        """Update a file in py_files with data.
+
+        Filename should be as it was added. For example if a directory search
+        was performed, filename will be the path to the file starting from the
+        project directory name. If filename was added to py_files directly, the
+        name should be as it was added.
+
+        Args:
+            filename: path of the file to be updated.
+            data: an instance of PyFileData
+
+        Raises:
+            TypeError: filename is not a string, data is not PyFileData
+        """
+        if type(filename) is not str:
+            raise TypeError("filename must be a string")
+
+        if not isinstance(data, PyFileData):
+            raise TypeError("data must be an instance of PyFileData")
+
+        self.__file_cache[filename] = data
 
     @staticmethod
     def walkdepth(start: str, max_depth: int = -1,
                   whitelist: Optional["FileSystemBWlist"] = None,
                   blacklist: Optional["FileSystemBWlist"] = None
                   ) -> Iterator[tuple[str, list[str], list[str]]]:
-        """Traverse the sub-directories of the given directory.
+        """Genarate the directory tree of the given directory.
 
         This is a directory tree generator that behaves similar to os.walk()
         except it can prune directories according to a depth, filter out files
@@ -247,76 +337,39 @@ class PyFileTracker:
 
             yield root, dirnames, filenames
 
-    def add_files(self, items: Iterable[str]) -> None:
-        """Update py_files with new files."""
-        if not isinstance(items, Iterable) or type(items) is str:
-            raise TypeError("items must be an Iterable of strings")
+    def add_files(self, filenames: Iterable[str]) -> None:
+        """Update py_files with new files.
 
-        for file in items:
+        If a file name already exists in py_files, it's data will be cleared.
+        Items in the iterable that are not strings, valid file paths or don't
+        have a .py extension will be ignored.
+
+        Args:
+            filenames: an iterable of paths to files.
+
+        Raises:
+            TypeError: filenames is not an iterable of strings.
+        """
+        if not isinstance(filenames, Iterable) or type(filenames) is str:
+            raise TypeError("filenames must be an Iterable of strings")
+
+        for file in filenames:
             if (
                 type(file) is str and
                 os.path.isfile(file) and
                 os.path.splitext(file)[1] == ".py"
             ):
-                self.__file_cache[file] = {"contents": None, "tree": None}
+                self.__file_cache[file] = PyFileData()
 
     def clear(self) -> None:
         """Clear the py_files cache."""
         self.__file_cache = {}
 
-    def update(self, filename: str,
-               contents: str | None = None,
-               tree: ast.AST | None = None
-               ) -> "ReadOnlyDict[str, None | str | ast.AST]":
+    def update(self, filename: str, data: PyFileData) -> None:
         if filename and type(filename) is not str:
             raise TypeError("filename must be a string")
 
-        if contents and type(contents) is not str:
-            raise TypeError("contents must be a string")
+        if not isinstance(data, PyFileData):
+            raise TypeError("data must be an instance of PyFileData")
 
-        if tree and not isinstance(tree, ast.AST):
-            raise TypeError("tree must be an instance of ast.AST")
-
-        self.__file_cache[filename] = {"contents": contents, "tree": tree}
-        return ReadOnlyDict(self.__file_cache[filename])
-
-
-
-class ReadOnlyDict(dict):
-    """A readonly dictionary."""
-
-    def __setitem__(self, key, value) -> None:
-        """Not Modifiable."""
-        raise TypeError("cannot modify ReadOnlyDict")
-
-    def __delitem__(self, key) -> None:
-        """Not Modifiable."""
-        raise TypeError("cannot modify ReadOnlyDict")
-
-    def clear(self) -> None:
-        """Not Modifiable."""
-        raise TypeError("cannot modify ReadOnlyDict")
-
-    def popitem(self) -> tuple:
-        """Not Modifiable."""
-        raise TypeError("cannot modify ReadOnlyDict")
-
-    def pop(self, k, d=None):
-        """Not Modifiable."""
-        raise TypeError("cannot modify ReadOnlyDict")
-
-    def setdefault(self, key, defualt=None) -> None:
-        """Not Modifiable."""
-        raise TypeError("cannot modify ReadOnlyDict")
-
-    def update(self, E, **kwargs) -> None:
-        """Not modifiable."""
-        raise TypeError("cannot modify ReadOnlyDict")
-
-
-if __name__ == "__main__":
-    rd = ReadOnlyDict(key="item", sum="all")
-    print(rd)
-    rd.update(sum="nun", more="items")
-    print(rd)
-    rd.clear()
+        self.__file_cache[filename] = data

@@ -4,10 +4,26 @@
 import regex
 import os
 import json
-from editing.file_handlers.pyfile_tracker import PyFileTracker
+
+try:
+    from editing.file_handlers.pyfile_tracker import PyFileTracker
+except ModuleNotFoundError:
+    from sys import path
+    path.append("/home/line/Github_Repositories/The_Python_Circus")
+    from editing.file_handlers.pyfile_tracker import PyFileTracker
+    del path
 
 class PyRegexEdit:
-    """Class for PyRegexEdit."""
+    """Search Python scripts with regexes.
+
+    Attributes:
+        __annotations_pattern: A regex pattern that tries to match Python type
+            annotations.
+        __directives_pattern: A regex pattern that tries to match type
+            directives.
+        __imports_pattern: A regex patten that tries to match imports from the
+            typing module.
+    """
 
     __annotations_pattern: str = r"""
     ## Return Value Type Annotations ##
@@ -84,7 +100,7 @@ class PyRegexEdit:
 
     @property
     def flags(self) -> int:
-        """Return current set flags."""
+        """A bit mask of flags for the regex search engine."""
         return self.__flags
 
     @flags.setter
@@ -104,24 +120,24 @@ class PyRegexEdit:
     def files(self, file_tracker: PyFileTracker | None) -> None:
         """Initialise a python file tracker."""
         if file_tracker and not isinstance(file_tracker, PyFileTracker):
-            raise TypeError("file_tracker is not an instance of PyFileTracker")
+            raise TypeError("file_tracker must be an instance of PyFileTracker")
 
         self.__files = file_tracker
 
-    def sub(self, regex_str: str = "", repl: str = "", flags: int = 0) -> None:
-        """Substitute repl whenever regex_str matches the text in the file."""
-        if not self.files:
-            return
+    # def sub(self, regex_str: str = "", repl: str = "", flags: int = 0) -> None:
+    #     """Substitute repl whenever regex_str matches the text in the file."""
+    #     if not self.files:
+    #         return
 
-        self.__pattern_object = self.compile(regex_str, flags)
-        for filename in self.files.py_files:
-            with open(filename, "r", encoding="utf-8") as file:
-                contents: str = file.read()
+    #     self.__pattern_object = self.compile(regex_str, flags)
+    #     for filename in self.files.py_files:
+    #         with open(filename, "r", encoding="utf-8") as file:
+    #             contents: str = file.read()
 
-            edited: str = self.__pattern_object.sub(repl, contents)
-            if edited:
-                with open(filename, "w", encoding="utf-8") as file:
-                    file.write(edited)
+    #         edited: str = self.__pattern_object.sub(repl, contents)
+    #         if edited:
+    #             with open(filename, "w", encoding="utf-8") as file:
+    #                 file.write(edited)
 
     def compile(self, regex_str: str = "", flags: int = 0) -> regex.Pattern:
         """Compile a regex pattern."""
@@ -146,21 +162,25 @@ class PyRegexEdit:
 
     def capturesdict_files(self, regex_str: str = "",
                            flags: int = 0, file_time: float | None = None
-                           ) -> dict[str, dict[str, list[str]]]:
+                           ) -> dict[str, dict[str, list[str]]] | None:
         """Return a dict of filenames with a dict of named capturing groups
         and their list of captures.
         """
+        if not self.files:
+            return None
+
         self.flags = flags
         self.__pattern_object = self.compile(regex_str, self.flags)
         file_matches: dict[str, dict[str, list[str]]] = {}
-        for filename in self.py_files:
+        for filename in self.files.py_files:
             with open(filename, "r", encoding="utf-8") as file:
-                contents: str = file.read()
+                self.files[filename].contents = file.read()
 
-            file_matches[filename] = {name: []
-                                      for name in self.__pattern_object.groupindex.keys()}
+            file_matches[filename] = {name: [] for name in
+                                      self.__pattern_object.groupindex.keys()}
             for match_obj in self.__pattern_object.finditer(
-                    contents, overlapped=True, timeout=file_time):
+                    self.files[filename].contents, overlapped=True,
+                    timeout=file_time):
                 for group_name, items in match_obj.capturesdict().items():
                     file_matches[filename][group_name] += items
 
@@ -170,26 +190,4 @@ class PyRegexEdit:
         """Reset all instance attributes."""
         self.flags = 0
         self.files = None
-        self.folders = ()
         self.__pattern_object = None
-        self.__folders_dict = {}
-
-
-def main() -> None:
-    """Entry Point."""
-    dirs: tuple[str, ...] = ()
-    i = PyRegexEdit()
-    # i.sub()
-    clean_dict: dict[str, dict[str, list[str]]] = {}
-    for file_name, captures in i.capturesdict_files().items():
-        clean_dict[file_name] = {}
-        for group, lst in captures.items():
-            if group == "returns" or group == "params_vars" or group == "directives" or group == "imports":
-                clean_dict[file_name][group] = lst
-
-    with open("matched_groups.json", "w", encoding="utf-8") as file:
-        json.dump(clean_dict, file, indent="\t")
-
-
-if __name__ == "__main__":
-    main()
