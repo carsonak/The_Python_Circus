@@ -8,7 +8,7 @@ from collections.abc import Iterable, Iterator, Hashable
 class BlackWhitelist:
     """A blacklist/whitelist manager."""
 
-    def __init__(self, items: Iterable[Hashable]) -> None:
+    def __init__(self, items: Iterable[Hashable]):
         """Initialise a Black/Whitelist of items.
 
         Args:
@@ -28,14 +28,10 @@ class BlackWhitelist:
         Args:
             items: an iterable with hashable items to initilise List.
         """
-        if isinstance(items, Iterable):
-            self.__itemList: set = set([i for i in items])
-        else:
+        if not isinstance(items, Iterable):
             raise TypeError("itemslist must be an iterable")
 
-    def __str__(self) -> str:
-        """Return a string of items in the List."""
-        return str(self.__itemList)
+        self.__itemList: set = set([i for i in items])
 
     def __repr__(self) -> str:
         """Return an official string representation of this instance."""
@@ -120,7 +116,17 @@ class BlackWhitelist:
         return len(self.__itemList)
 
     def __contains__(self, item: Hashable) -> bool:
-        """Check if item exists in the List."""
+        """Check if item exists in the List.
+
+        Args:
+            item: a hashable object.
+
+        Returns:
+            A bool depending on whether the item in found.
+
+        Raises:
+            TypeError: item is not Hashable.
+        """
         return item in self.__itemList
 
     def __iter__(self) -> Iterator:

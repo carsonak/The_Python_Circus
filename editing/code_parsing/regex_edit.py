@@ -9,7 +9,7 @@ try:
     from editing.file_handlers.pyfile_tracker import PyFileTracker
 except ModuleNotFoundError:
     from sys import path
-    path.append("/home/line/Github_Repositories/The_Python_Circus")
+    path.append(os.path.abspath("../.."))
     from editing.file_handlers.pyfile_tracker import PyFileTracker
     del path
 
