@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 """Module for re_annotation_remover."""
 
-import regex
 import os
-import json
+
+import regex
 
 try:
     from editing.file_handlers.pyfile_tracker import PyFileTracker
@@ -12,6 +12,7 @@ except ModuleNotFoundError:
     path.append(os.path.abspath("../.."))
     from editing.file_handlers.pyfile_tracker import PyFileTracker
     del path
+
 
 class PyRegexEdit:
     """Search Python scripts with regexes.
@@ -39,7 +40,7 @@ class PyRegexEdit:
                     (?P<opt_comma_brace_slash_loop> ,
                         # If ', ...' break out of <opt_comma_brace_slash_loop>
                         # otherwise match another <annotation>.
-                        (?P<opt_elipses_annotation> \ \.{3} | (?P&annotation)) |
+                        (?P<opt_elipses_annotation> \ \.{3} |(?P&annotation))|
                     # If '[' match another <sqr_braces>
                     (?P&sqr_braces) |
                     # if ' |' match another <annotation>
@@ -92,7 +93,8 @@ class PyRegexEdit:
     )
     """
 
-    def __init__(self, file_tracker: PyFileTracker | None = None, flags: int = 0) -> None:
+    def __init__(self, file_tracker: PyFileTracker | None = None,
+                 flags: int = 0) -> None:
         """Initialise instance attributes."""
         self.__pattern_object: regex.Pattern | None = None
         self.flags: int = flags
@@ -120,24 +122,25 @@ class PyRegexEdit:
     def files(self, file_tracker: PyFileTracker | None) -> None:
         """Initialise a python file tracker."""
         if file_tracker and not isinstance(file_tracker, PyFileTracker):
-            raise TypeError("file_tracker must be an instance of PyFileTracker")
+            raise TypeError(
+                "file_tracker must be an instance of PyFileTracker")
 
         self.__files = file_tracker
 
-    # def sub(self, regex_str: str = "", repl: str = "", flags: int = 0) -> None:
-    #     """Substitute repl whenever regex_str matches the text in the file."""
-    #     if not self.files:
-    #         return
+# def sub(self, regex_str: str = "", repl: str = "", flags: int = 0) -> None:
+#     """Substitute repl whenever regex_str matches the text in the file."""
+#     if not self.files:
+#         return
 
-    #     self.__pattern_object = self.compile(regex_str, flags)
-    #     for filename in self.files.py_files:
-    #         with open(filename, "r", encoding="utf-8") as file:
-    #             contents: str = file.read()
+#     self.__pattern_object = self.compile(regex_str, flags)
+#     for filename in self.files.py_files:
+#         with open(filename, "r", encoding="utf-8") as file:
+#             contents: str = file.read()
 
-    #         edited: str = self.__pattern_object.sub(repl, contents)
-    #         if edited:
-    #             with open(filename, "w", encoding="utf-8") as file:
-    #                 file.write(edited)
+#         edited: str = self.__pattern_object.sub(repl, contents)
+#         if edited:
+#             with open(filename, "w", encoding="utf-8") as file:
+#                 file.write(edited)
 
     def compile(self, regex_str: str = "", flags: int = 0) -> regex.Pattern:
         """Compile a regex pattern."""
@@ -163,9 +166,7 @@ class PyRegexEdit:
     def capturesdict_files(self, regex_str: str = "",
                            flags: int = 0, file_time: float | None = None
                            ) -> dict[str, dict[str, list[str]]] | None:
-        """Return a dict of filenames with a dict of named capturing groups
-        and their list of captures.
-        """
+        """Return a dict: {filename: {capture_group: list_of_matches}}."""
         if not self.files:
             return None
 

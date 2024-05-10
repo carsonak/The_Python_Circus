@@ -2,27 +2,31 @@
 """Module for blacklist_whitelist."""
 
 
-from collections.abc import Iterable, Iterator, Hashable
+from collections.abc import Hashable, Iterable, Iterator
 
 
 class BlackWhitelist:
     """A blacklist/whitelist manager."""
 
-    def __init__(self, items: Iterable[Hashable]):
+    def __init__(self, items: Iterable):
         """Initialise a Black/Whitelist of items.
 
         Args:
             items: an iterable with hashable items to initilise List.
         """
-        self.itemslist = items
+        self.itemslist = items  # type: ignore
+        self.__cache_items: frozenset = frozenset(self.__mut_items)
 
     @property
-    def itemslist(self) -> Iterable:
+    def itemslist(self) -> frozenset:
         """An iterable of all the items in the List."""
-        return iter(self)
+        if self.__cache_items != self.__mut_items:
+            self.__cache_items = frozenset(self.__mut_items)
+
+        return self.__cache_items
 
     @itemslist.setter
-    def itemslist(self, items: Iterable[Hashable]) -> None:
+    def itemslist(self, items: Iterable) -> None:
         """Hash and store items in a List.
 
         Args:
@@ -31,16 +35,16 @@ class BlackWhitelist:
         if not isinstance(items, Iterable):
             raise TypeError("itemslist must be an iterable")
 
-        self.__itemList: set = set([i for i in items])
+        self.__mut_items: set = {i for i in items}
 
     def __repr__(self) -> str:
         """Return an official string representation of this instance."""
-        return f"{self.__class__.__name__}({self.__itemList})"
+        return f"{self.__class__.__name__}({self.__mut_items})"
 
     def __add__(self, other: "BlackWhitelist") -> "BlackWhitelist":
         """Return a union of self and other."""
         if isinstance(other, BlackWhitelist):
-            t = BlackWhitelist(self.__itemList.union(other.__itemList))
+            t = BlackWhitelist(self.__mut_items.union(other.itemslist))
             return t
         else:
             return NotImplemented
@@ -48,72 +52,70 @@ class BlackWhitelist:
     def __iadd__(self, other: "BlackWhitelist") -> None:
         """Update self with a union of self and other."""
         if isinstance(other, BlackWhitelist):
-            self.__itemList.update(other.__itemList)
+            self.__mut_items.update(other.itemslist)
         else:
             return NotImplemented
 
     def __sub__(self, other: "BlackWhitelist") -> "BlackWhitelist":
         """Return a difference of self and other."""
         if isinstance(other, BlackWhitelist):
-            t = BlackWhitelist(self.__itemList.difference(other.__itemList))
-            return t
+            return BlackWhitelist(self.__mut_items.difference(other.itemslist))
         else:
             return NotImplemented
 
     def __isub__(self, other: "BlackWhitelist") -> None:
         """Update self with the difference of self and other."""
         if isinstance(other, BlackWhitelist):
-            self.__itemList.difference_update(other.__itemList)
+            self.__mut_items.difference_update(other.itemslist)
         else:
             return NotImplemented
 
     def __and__(self, other: "BlackWhitelist") -> "BlackWhitelist":
         """Return an intersection of self and other."""
         if isinstance(other, BlackWhitelist):
-            t = BlackWhitelist(self.__itemList & other.__itemList)
-            return t
+            return BlackWhitelist(
+                self.__mut_items.intersection(other.itemslist))
         else:
             return NotImplemented
 
     def __iand__(self, other: "BlackWhitelist") -> None:
         """Update self with an intersection of self and other."""
         if isinstance(other, BlackWhitelist):
-            self.__itemList.intersection(other.__itemList)
+            self.__mut_items.intersection_update(other.itemslist)
         else:
             return NotImplemented
 
     def __or__(self, other: "BlackWhitelist") -> "BlackWhitelist":
         """Return a union of self and other."""
         if isinstance(other, BlackWhitelist):
-            t = BlackWhitelist(self.__itemList.union(other.__itemList))
-            return t
+            return BlackWhitelist(self.__mut_items.union(other.itemslist))
         else:
             return NotImplemented
 
     def __ior__(self, other: "BlackWhitelist") -> None:
         """Update self with a union of self and other."""
         if isinstance(other, BlackWhitelist):
-            self.__itemList.update(other.__itemList)
+            self.__mut_items.update(other.itemslist)
         else:
             return NotImplemented
 
     def __eq__(self, other: object) -> bool:
         """Return self == other."""
         if isinstance(other, BlackWhitelist):
-            return self.__itemList == other.__itemList
+            return self.__mut_items == other.itemslist
         else:
             return NotImplemented
 
     def __lt__(self, other: object) -> bool:
         """Return self < other."""
         if isinstance(other, BlackWhitelist):
-            return self.__itemList < other.__itemList
+            return self.__mut_items < other.itemslist
         else:
             return NotImplemented
 
     def __len__(self) -> int:
         """Return number of items in the List."""
-        return len(self.__itemList)
+        return len(self.__mut_items)
 
     def __contains__(self, item: Hashable) -> bool:
         """Check if item exists in the List.
@@ -127,43 +129,45 @@ class BlackWhitelist:
         Raises:
             TypeError: item is not Hashable.
         """
-        return item in self.__itemList
+        return item in self.__mut_items
 
     def __iter__(self) -> Iterator:
         """Return an iterator for the List."""
-        return iter(self.__itemList)
+        return iter(self.__mut_items)
 
-    def add(self, item: Hashable | Iterable[Hashable]) -> None:
+    def add(self, items: Iterable[Hashable] | Hashable) -> None:
         """Add an items to the List.
 
         Args:
-            item: a hashable object or an iterable of hashable objects.
+            items: an iterable of hashable objects or a single hashable object.
+                Strings are not considered as iterables.
         """
-        if isinstance(item, Hashable) and not isinstance(item, Iterable):
-            self.__itemList.add(item)
-        elif isinstance(item, Iterable):
-            self.__itemList.update(item)
+        if isinstance(items, Iterable) and not isinstance(items, str):
+            self.__mut_items.update(items)
+        elif isinstance(items, Hashable):
+            self.__mut_items.add(items)
         else:
-            raise TypeError("item must be a hashable object or"
-                            "an iterable of hashable objects")
+            raise TypeError("items must be an iterable of hashable objects or"
+                            " a hashable object")
 
-    def discard(self, item: Hashable | Iterable[Hashable]) -> None:
+    def discard(self, items: Iterable[Hashable] | Hashable) -> None:
         """Remove an items from the List.
 
-        If item is not in the list nothing happens.
+        If items is not in the list nothing happens.
 
         Args:
-            item: a hashable object or an iterable of Hashable objects.
+            items: an iterable of hashable objects or a single hashable object.
+                Strings are not considered as iterables.
         """
-        if isinstance(item, Hashable) and not isinstance(item, Iterable):
-            self.__itemList.discard(item)
-        elif isinstance(item, Iterable):
-            for i in item:
-                self.__itemList.discard(i)
+        if isinstance(items, Iterable) and not isinstance(items, str):
+            for i in items:
+                self.__mut_items.discard(i)
+        elif isinstance(items, Hashable):
+            self.__mut_items.discard(items)
         else:
-            raise TypeError("item must be a hashable object or"
-                            "an iterable of hashable objects")
+            raise TypeError("items must be an iterable of hashable objects or"
+                            " a hashable object")
 
     def clear(self) -> None:
         """Clear all items from the List."""
-        self.__itemList.clear()
+        self.__mut_items.clear()

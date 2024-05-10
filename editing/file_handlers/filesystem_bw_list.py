@@ -8,17 +8,17 @@ try:
     from editing.file_handlers.blackwhite_list import BlackWhitelist
 except ModuleNotFoundError:
     from sys import path
-    from os.path import abspath, dirname
-    path.append(abspath(dirname(dirname(dirname(__file__)))))
+    from os.path import dirname, realpath
+    path.append(realpath(dirname(dirname(dirname(__file__)))))
     from editing.file_handlers.blackwhite_list import BlackWhitelist
-    del path, abspath, dirname
+    del path, realpath, dirname
 
 
 class FileSystemBWlist:
     """Blacklist/whitelist manager for files and directories."""
 
-    def __init__(self, files: Iterable[str] = ("", ),
-                 directories: Iterable[str] = ("", )):
+    def __init__(self, files: Iterable[str] = frozenset(""),
+                 directories: Iterable[str] = frozenset("")):
         """Initialise a files List and a directories List.
 
         Args:
@@ -26,11 +26,11 @@ class FileSystemBWlist:
             directories: an iterable of strings representing paths to
                 directories.
         """
-        self.files = files
-        self.directories = directories
+        self.files = files  # type: ignore
+        self.directories = directories  # type: ignore
 
     @property
-    def files(self) -> Iterable[str]:
+    def files(self) -> frozenset[str]:
         """A List of Files."""
         return self.__fileList.itemslist
 
@@ -41,29 +41,28 @@ class FileSystemBWlist:
         Any items in the iterable that are not strings will be ignored.
 
         Args:
-            files: an iterable of strings and not type str itself.
+            files: an iterable of strings. Must not be a literal string.
 
         Raises:
             TypeError: files is a string or not an iterable of strings.
         """
-        if not isinstance(files, Iterable) or type(files) is str:
+        if isinstance(files, str) or not isinstance(files, Iterable):
             raise TypeError("files only accepts and iterable of strings.")
 
-        self.__fileList: BlackWhitelist = BlackWhitelist(())
         tmp: set[str] = set()
         for f in files:
             if isinstance(f, str):
-                tmp.add(f[2:] if f.startswith("./") else f)
+                tmp.add(f[2:].rstrip("/") if f.startswith("./") else f)
 
-        self.__fileList.add(tmp)
+        self.__fileList: BlackWhitelist = BlackWhitelist(tmp)
 
     @property
-    def directories(self) -> Iterable[str]:
+    def directories(self) -> frozenset[str]:
         """A List of directories."""
         return self.__dirList.itemslist
 
     @directories.setter
-    def directories(self, directories: Iterable[str]) -> None:
+    def directories(self, directories: frozenset[str]) -> None:
         """Create a List of directories.
 
         Any items in the iterable that are not strings will be ignored.
@@ -77,11 +76,13 @@ class FileSystemBWlist:
         if not isinstance(directories, Iterable) or type(directories) is str:
             raise TypeError("directories must be an Iterable of strings")
 
-        self.__dirList: BlackWhitelist = BlackWhitelist(())
         tmp: set[str] = set()
         for d in directories:
             if isinstance(d, str):
-                tmp.add(d[2:] if d.startswith("./") and len(d) > 2 else d)
+                tmp.add(d[2:].rstrip("/") if d.startswith("./") and
+                        len(d) > 2 else d)
+
+        self.__dirList: BlackWhitelist = BlackWhitelist(tmp)
 
     def __repr__(self) -> str:
         """Return an official string representation of this instance."""

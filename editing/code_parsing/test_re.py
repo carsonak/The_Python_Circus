@@ -27,9 +27,11 @@ class Rectangle(BaseGeometry):
 
     @property
     def blc(self) -> tuple[int, int]:
+        return (1, 1)
 
     @blc.setter
     def blc(self, val: tuple[int, int]):
+        pass
 
     def getOverlap(self, other: "Rectangle") -> Optional["Rectangle"]:
         """Return an instance of an overlapping rectangle if any else None."""

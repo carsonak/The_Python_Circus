@@ -10,15 +10,17 @@ try:
     from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
 except ModuleNotFoundError:
     from sys import path
-    path.append(os.path.abspath("../.."))
+    from os.path import dirname, realpath
+    path.append(dirname(dirname(dirname(realpath(__file__)))))
     from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
-    del path
+    del path, realpath, dirname
 
 
 class PyFileData:
     """A container for Python scipt data."""
 
     def __init__(self, contents: str = "", tree: ast.AST | None = None):
+        """Initialise a container for Python scipt data."""
         self.contents = contents
         self.tree = tree
 
@@ -134,7 +136,8 @@ class PyFileTracker:
         Raises:
             TypeError: blacklist is not None or an instance of FileSystemBWlist
         """
-        if blacklist is not None and not isinstance(blacklist, FileSystemBWlist):
+        if blacklist is not None and not isinstance(blacklist,
+                                                    FileSystemBWlist):
             raise TypeError(
                 "blacklist must be an instance of FileSystemBWlist or None")
 
@@ -155,9 +158,10 @@ class PyFileTracker:
         Raises:
             TypeError: whitelist is not None or an instance of FileSystemBWlist
         """
-        if whitelist is not None and not isinstance(whitelist, FileSystemBWlist):
-            raise TypeError(
-                "whitelist must be an instance of FileSystemBWlist or None")
+        if whitelist is not None and not isinstance(whitelist,
+                                                    FileSystemBWlist):
+            raise TypeError("whitelist must be an instance of "
+                            "FileSystemBWlist or None")
 
         self.__whitelist = whitelist
 
@@ -191,8 +195,10 @@ class PyFileTracker:
                 os.path.isfile(file) and
                 os.path.splitext(file)[1] == ".py"
             ):
-                self.__file_cache[file[2:] if file.startswith("./") else
-                                  file] = PyFileData()
+                file = file.rstrip(os.sep)
+                self.__file_cache[
+                    file[2:] if file.startswith(f".{os.sep}") else file
+                    ] = PyFileData()
 
     @property
     def directory(self) -> str:
@@ -217,13 +223,13 @@ class PyFileTracker:
         if type(directory) is not str:
             raise TypeError("directory must be an instance of str")
 
-        if directory.startswith("./") and len(directory) > 2:
+        directory = directory.rstrip(os.sep)
+        if directory.startswith(f".{os.sep}") and len(directory) > 2:
             directory = directory[2:]
 
-        self.__workingdir = directory.rstrip("/")
-        for root, dirs, files in self.walkdepth(self.__workingdir, self.depth,
-                                                self.whitelist,
-                                                self.blacklist):
+        self.__workingdir = directory
+        for root, _dirs, files in self.walkdepth(
+                self.__workingdir, self.depth, self.whitelist, self.blacklist):
             self.add_files([os.sep.join((root, file)) for file in files])
 
     def __repr__(self) -> str:
@@ -253,8 +259,9 @@ class PyFileTracker:
         if type(filename) is not str:
             raise TypeError("filename must be a str")
 
-        return self.__file_cache[filename[2:] if filename.startswith("./") else
-                                 filename]
+        filename = filename.rstrip(os.sep)
+        return self.__file_cache[
+            filename[2:] if filename.startswith(f".{os.sep}") else filename]
 
     def __setitem__(self, filename: str, data: PyFileData) -> None:
         """Update a file in py_files with data.
@@ -324,20 +331,21 @@ class PyFileTracker:
         if type(max_depth) is not int:
             raise TypeError("max_depth must be an int")
 
-        if (whitelist is not None and
-            not isinstance(whitelist, FileSystemBWlist)):
-            raise TypeError("whitelist must be None or"
+        if whitelist is not None and not isinstance(whitelist,
+                                                    FileSystemBWlist):
+            raise TypeError("whitelist must be None or "
                             "an instance of FileSystemBWlist")
 
-        if (blacklist is not None and
-            not isinstance(blacklist, FileSystemBWlist)):
-            raise TypeError("blacklist must be None or"
+        if blacklist is not None and not isinstance(blacklist,
+                                                    FileSystemBWlist):
+            raise TypeError("blacklist must be None or "
                             "an instance of FileSystemBWlist")
 
-        if start.startswith("./") and len(start) > 2:
+        start = start.rstrip(os.sep)
+        if start.startswith(f".{os.sep}") and len(start) > 2:
             start = start[2:]
 
-        base_depth: int = start.rstrip(os.sep).count(os.sep)
+        base_depth: int = start.count(os.sep)
         for root, dirnames, filenames in os.walk(start):
             for dir, file in zip_longest(dirnames[:], filenames[:]):
                 if dir:
@@ -384,7 +392,10 @@ class PyFileTracker:
                 os.path.isfile(file) and
                 os.path.splitext(file)[1] == ".py"
             ):
-                self.__file_cache[file] = PyFileData()
+                file = file.rstrip(os.sep)
+                self.__file_cache[
+                    file[2:] if file.startswith(f".{os.sep}") else file
+                    ] = PyFileData()
 
     def clear(self) -> None:
         """Clear all items in py_files."""

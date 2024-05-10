@@ -7,17 +7,18 @@ import ast
 class TypeHintsRemover(ast.NodeTransformer):
     """Type Annotation Remover."""
 
-    def visit_arg(self, node: ast.arg) -> ast.AST:
+    def visit_arg(self, node: ast.arg) -> ast.AST:  # noqa: N802
         """Remove function arguments annotations."""
         node.annotation = None
         return self.generic_visit(node)
 
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.AST:
+    def visit_FunctionDef(self,  # noqa: N802
+                          node: ast.FunctionDef) -> ast.AST:
         """Remove function return type annotations."""
         node.returns = None
         return self.generic_visit(node)
 
-    def visit_AnnAssign(self, node: ast.AnnAssign) -> ast.AST:
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> ast.AST:  # noqa: N802
         """Remove type annotations from assign statements."""
         assign_kwargs: dict[str, list[ast.AST] | ast.AST] = {}
         for k, v in node.__dict__.items():
@@ -30,13 +31,14 @@ class TypeHintsRemover(ast.NodeTransformer):
 
         return self.generic_visit(ast.Assign(**assign_kwargs))
 
-    def visit_Import(self, node: ast.Import) -> ast.AST | None:
+    def visit_Import(self, node: ast.Import) -> ast.AST | None:  # noqa: N802
         """Remove typing module imports from `import` statements."""
         node.names = [module for module in node.names
                       if not module.name.startswith("typing")]
         return self.generic_visit(node) if node.names else None
 
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> ast.AST | None:
+    def visit_ImportFrom(self,  # noqa: N802
+                         node: ast.ImportFrom) -> ast.AST | None:
         """Remove typing module imports from `from ... import` statements."""
         module_name: str | None = node.module
         if module_name and module_name.startswith("typing"):
