@@ -191,7 +191,8 @@ class PyFileTracker:
                 os.path.isfile(file) and
                 os.path.splitext(file)[1] == ".py"
             ):
-                self.__file_cache[file] = PyFileData()
+                self.__file_cache[file[2:] if file.startswith("./") else
+                                  file] = PyFileData()
 
     @property
     def directory(self) -> str:
@@ -216,8 +217,11 @@ class PyFileTracker:
         if type(directory) is not str:
             raise TypeError("directory must be an instance of str")
 
-        self.__workingdir = directory
-        for root, dirs, files in self.walkdepth(directory, self.depth,
+        if directory.startswith("./") and len(directory) > 2:
+            directory = directory[2:]
+
+        self.__workingdir = directory.rstrip("/")
+        for root, dirs, files in self.walkdepth(self.__workingdir, self.depth,
                                                 self.whitelist,
                                                 self.blacklist):
             self.add_files([os.sep.join((root, file)) for file in files])
@@ -249,7 +253,8 @@ class PyFileTracker:
         if type(filename) is not str:
             raise TypeError("filename must be a str")
 
-        return self.__file_cache[filename]
+        return self.__file_cache[filename[2:] if filename.startswith("./") else
+                                 filename]
 
     def __setitem__(self, filename: str, data: PyFileData) -> None:
         """Update a file in py_files with data.
@@ -328,6 +333,9 @@ class PyFileTracker:
             not isinstance(blacklist, FileSystemBWlist)):
             raise TypeError("blacklist must be None or"
                             "an instance of FileSystemBWlist")
+
+        if start.startswith("./") and len(start) > 2:
+            start = start[2:]
 
         base_depth: int = start.rstrip(os.sep).count(os.sep)
         for root, dirnames, filenames in os.walk(start):

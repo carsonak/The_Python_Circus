@@ -49,12 +49,15 @@ if __name__ == "__main__":
     code: str = """@decorator1
 @decorator2
 def f1(pos1: int, pos2, /, a: 'annotation', b, c: dict[str, tuple], d=1,
-      *args: int, key1, key2: bool, key3='default', **kwargs) -> float:
-   pass
+      *args: int, key1, key2: bool, key3='default', **kwargs
+      ) -> Iterator[float]:
+   yield 1.0
+   yield 2.6
+   yield 5.8
 """
     print(code)
     tree = ast.parse(code)
-    print("BEFORE\n------\n", ast.dump(tree, include_attributes=True, indent=2), end="\n\n")
+    print("BEFORE\n------\n", ast.dump(tree, indent=2), end="\n\n")
     new = TypeHintsRemover().visit(tree)
-    print("AFTER\n-----\n", ast.dump(new, include_attributes=True, indent=2), end="\n\n")
+    print("AFTER\n-----\n", ast.dump(new, indent=2), end="\n\n")
     print(ast.unparse(new))

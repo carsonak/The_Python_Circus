@@ -3,8 +3,10 @@
 
 import ast
 import json
-from mmap import mmap
-from pprint import pprint
+import mmap
+import os
+from shutil import move
+from tempfile import NamedTemporaryFile
 
 try:
     from editing.code_parsing.ast_edit import TypeHintsRemover
@@ -44,15 +46,32 @@ def main() -> None:
     bl: FileSystemBWlist = FileSystemBWlist(("practice/pangram2.py", "practice/inf_vs_nan.py"))
     # Instantiate a file tracker
     tracker: PyFileTracker = PyFileTracker(directory="practice", blacklist=bl)
+    tracker.whitelist = FileSystemBWlist(("./editing/file_handlers/pyfile_tracker.py",))
+    tracker.directory = "./editing/"
     # Generate edited ASTs for the files
     for filename in tracker.py_files:
-        with open(filename, "r+") as file:
-            with mmap(file.fileno(), 0) as mmfile:
+        file_size: int = os.stat(filename).st_size
+        if not file_size:
+            continue
+
+        with open(filename, "rb") as file:
+            with mmap.mmap(file.fileno(), file_size, access=mmap.ACCESS_READ) as mmfile:
                 tracker[filename] = PyFileData(tree=ast.parse(mmfile, filename))
 
-    # Parse the ASTs and update the files
-    pprint(tracker.__dict__)
+        new_tree: ast.AST = TypeHintsRemover().visit(tracker[filename].tree)
+        if new_tree != tracker[filename].tree:
+            tracker[filename].tree = new_tree
+        else:
+            continue
 
+        # Parse the ASTs and update the files
+        base: str = os.path.basename(filename)
+        with NamedTemporaryFile("wb", prefix=f"{base}.bak.", delete=False) as tmp_file:
+            with mmap.mmap(tmp_file.fileno(), file_size, access=mmap.ACCESS_WRITE) as mmtmp_file:
+                mmtmp_file.write(bytes(ast.unparse(tracker[filename].tree), encoding="utf-8"))
+                mmtmp_file.flush()
+
+        move(tmp_file.file.name, base)
 
 if __name__ == "__main__":
     main()

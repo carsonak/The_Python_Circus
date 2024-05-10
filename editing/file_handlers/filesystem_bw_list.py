@@ -50,9 +50,12 @@ class FileSystemBWlist:
             raise TypeError("files only accepts and iterable of strings.")
 
         self.__fileList: BlackWhitelist = BlackWhitelist(())
+        tmp: set[str] = set()
         for f in files:
             if isinstance(f, str):
-                self.__fileList.add((f,))
+                tmp.add(f[2:] if f.startswith("./") else f)
+
+        self.__fileList.add(tmp)
 
     @property
     def directories(self) -> Iterable[str]:
@@ -75,9 +78,10 @@ class FileSystemBWlist:
             raise TypeError("directories must be an Iterable of strings")
 
         self.__dirList: BlackWhitelist = BlackWhitelist(())
+        tmp: set[str] = set()
         for d in directories:
             if isinstance(d, str):
-                self.__dirList.add((d,))
+                tmp.add(d[2:] if d.startswith("./") and len(d) > 2 else d)
 
     def __repr__(self) -> str:
         """Return an official string representation of this instance."""
@@ -91,6 +95,9 @@ class FileSystemBWlist:
             path: a path to a file or directory.
         """
         if type(path) is str:
+            if path.startswith("./") and len(path) > 2:
+                path = path[2:]
+
             return (
                 (path in self.__fileList or path in self.__dirList) or
                 (basename(path) in self.__fileList or
@@ -106,9 +113,15 @@ class FileSystemBWlist:
             path: path to a file or an iterable with pathnames.
         """
         if type(path) is str:
-            self.__fileList.add((path,))
+            tmp: set[str] = {path[2:] if path.startswith("./") else path}
+            self.__fileList.add(tmp)
         elif isinstance(path, Iterable):
-            self.__fileList.add({p for p in path if type(p) is str})
+            tmp = set()
+            for p in path:
+                if isinstance(p, str):
+                    tmp.add(p[2:] if p.startswith("./") else p)
+
+            self.__fileList.add(tmp)
         else:
             raise TypeError("path must be a string or an iterable of strings")
 
@@ -119,9 +132,16 @@ class FileSystemBWlist:
             path: path to a directory or an iterable with pathnames.
         """
         if type(path) is str:
-            self.__dirList.add((path,))
+            tmp: set[str] = {path[2:] if path.startswith("./") and
+                             len(path) > 2 else path}
+            self.__dirList.add(tmp)
         elif isinstance(path, Iterable):
-            self.__dirList.add({p for p in path if type(p) is str})
+            tmp = set()
+            for p in path:
+                if isinstance(p, str):
+                    tmp.add(p[2:] if p.startswith("./") and len(p) > 2 else p)
+
+            self.__dirList.add(tmp)
         else:
             raise TypeError("path must be a string or an iterable of strings")
 
@@ -132,9 +152,15 @@ class FileSystemBWlist:
             path: path to a file or an iterable with pathnames.
         """
         if type(path) is str:
-            self.__fileList.discard(path)
+            tmp: set[str] = {path[2:] if path.startswith("./") else path}
+            self.__fileList.add(tmp)
         elif isinstance(path, Iterable):
-            self.__fileList.discard({p for p in path if type(p) is str})
+            tmp = set()
+            for p in path:
+                if isinstance(p, str):
+                    tmp.add(p[2:] if p.startswith("./") else p)
+
+            self.__fileList.discard(tmp)
 
     def drop_dir(self, path: str | Iterable[str]) -> None:
         """Delete an entry or entries from the directory List.
@@ -143,23 +169,32 @@ class FileSystemBWlist:
             path: a directory pathname or an iterable with pathnames.
         """
         if type(path) is str:
-            self.__dirList.discard(path)
+            tmp: set[str] = {path[2:] if path.startswith("./") and
+                             len(path) > 2 else path}
+            self.__dirList.add(tmp)
         elif isinstance(path, Iterable):
-            self.__dirList.discard({p for p in path if type(p) is str})
+            tmp = set()
+            for p in path:
+                if isinstance(p, str):
+                    tmp.add(p[2:] if p.startswith("./") and len(p) > 2 else p)
+
+            self.__dirList.discard(tmp)
 
     def in_files(self, path: str) -> str | None:
-        """Return path if found in file List else None.
+        """Return path if found in files List else None.
 
-        Both the basename and full path will be checked.
+        Searches both the basename and the original path.
 
         Args:
             path: a pathname.
 
         Returns:
-            a str of either the full path or basename if one of those was
-            found else None.
+            a str of either the full path or basename if found else None.
         """
         if type(path) is str:
+            if path.startswith("./"):
+                path = path[2:]
+
             if path in self.__fileList:
                 return path
             elif basename(path) in self.__fileList:
@@ -168,18 +203,20 @@ class FileSystemBWlist:
         return None
 
     def in_dirs(self, path: str) -> str | None:
-        """Return path if found in directory List else None.
+        """Return path if found in directories List else None.
 
-        Both the basename and full path will be checked.
+        Searches both the basename and the original path.
 
         Args:
             path: a pathname.
 
         Returns:
-            a str of either the full path or basename if one of those was
-            found else None.
+            a str of either the full path or basename if found else None.
         """
         if type(path) is str:
+            if path.startswith("./") and len(path) > 2:
+                path = path[2:]
+
             if path in self.__dirList:
                 return path
             elif basename(path) in self.__dirList:
@@ -188,9 +225,14 @@ class FileSystemBWlist:
         return None
 
     def clear_files(self) -> None:
-        """Delete all entries in file List."""
+        """Delete all entries in files List."""
         self.__fileList.clear()
 
     def clear_dirs(self) -> None:
-        """Delete all entries in directory List."""
+        """Delete all entries in directories List."""
         self.__dirList.clear()
+
+    def clear_all(self) -> None:
+        """Clear both files and directories Lists."""
+        self.clear_dirs()
+        self.clear_files()
