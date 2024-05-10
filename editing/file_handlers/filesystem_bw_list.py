@@ -9,7 +9,7 @@ try:
 except ModuleNotFoundError:
     from sys import path
     from os.path import dirname, realpath
-    path.append(realpath(dirname(dirname(dirname(__file__)))))
+    path.append(dirname(dirname(dirname(realpath(__file__)))))
     from editing.file_handlers.blackwhite_list import BlackWhitelist
     del path, realpath, dirname
 

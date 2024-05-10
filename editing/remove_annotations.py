@@ -2,23 +2,24 @@
 """Module for remove_annotations."""
 
 import ast
+import autopep8
 # import json
 import mmap
 import os
-from shutil import move
+import shutil
 from tempfile import NamedTemporaryFile
 
 try:
     from editing.code_parsing.ast_edit import TypeHintsRemover
 except ModuleNotFoundError:
     from sys import path
-    from os.path import abspath, dirname
-    path.append(abspath(dirname(dirname(__file__))))
+    from os.path import realpath, dirname
+    path.append(dirname(dirname(realpath(__file__))))
     from editing.code_parsing.ast_edit import TypeHintsRemover
-    del path, abspath, dirname
+    del path, realpath, dirname
 
 from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
-from editing.file_handlers.pyfile_tracker import PyFileData, PyFileTracker
+from editing.file_handlers.pyfile_tracker import PyFileTracker
 # from editing.code_parsing.regex_edit import PyRegexEdit
 
 
@@ -42,41 +43,57 @@ from editing.file_handlers.pyfile_tracker import PyFileData, PyFileTracker
 #     with open("matched_groups.json", "w", encoding="utf-8") as file:
 #         json.dump(clean_dict, file, indent="\t")
 
+def ast_annotation_removal(tracker: PyFileTracker) -> None:
+    """Remove type annotations from files."""
+    print("Processing files...")
+
+    for filename in tracker.py_files:
+        if not os.stat(filename).st_size:
+            continue
+
+        base: str = os.path.basename(filename)
+        with (open(filename, "rb") as file,
+              mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as mmfile,
+              NamedTemporaryFile("wb", prefix=f"{base}.bak.",
+                                 delete=False) as tmpf
+              ):
+            # Generate AST for the file
+            print(f"Building Abstract Syntax Trees for: {filename}")
+
+            tree: ast.Module = ast.parse(mmfile, filename)
+            tracker[filename].tree = tree
+            # Parse the AST, removing type annotations
+            tree = TypeHintsRemover().visit(tree)
+            # Write to a temporary file
+            print("Generating source code...")
+
+            tmpf.write(bytes(f"#!/usr/bin/python3\n{ast.unparse(tree)}",
+                             encoding="utf-8"))
+            tmpf.flush()
+
+        # Clean up code with a formatter
+        print("Tidying up...", end="")
+
+        autopep8.fix_file(
+            tmpf.file.name, autopep8._get_options({"in_place": True}, False))
+        # Copy over metadata
+        shutil.copystat(filename, tmpf.file.name)
+        # Replace original file
+        shutil.move(tmpf.file.name, filename)
+
+        print("Done")
+
 
 def main() -> None:
     """Entry point."""
-    # Instantiate a black list
-    bl: FileSystemBWlist = FileSystemBWlist(
-        ("practice/pangram2.py", "practice/inf_vs_nan.py"))
     # Instantiate a file tracker
-    tracker: PyFileTracker = PyFileTracker(directory="practice", blacklist=bl)
-    tracker.whitelist = FileSystemBWlist(
-        ("./editing/file_handlers/pyfile_tracker.py",))
-    tracker.directory = "./editing/"
-    # Generate edited ASTs for the files
-    for filename in tracker.py_files:
-        file_size: int = os.stat(filename).st_size
-        if not file_size:
-            continue
-
-        with (open(filename, "rb") as file,
-              mmap.mmap(file.fileno(), file_size, access=mmap.ACCESS_READ
-                        ) as mmfile):
-            old_tree: ast.AST = ast.parse(mmfile, filename)
-            tracker[filename] = PyFileData(tree=old_tree)
-
-        new_tree: ast.AST = TypeHintsRemover().visit(old_tree)
-        tracker[filename].tree = new_tree
-        # Parse the ASTs and update the files
-        base: str = os.path.basename(filename)
-        with (NamedTemporaryFile(
-            "wb", prefix=f"{base}.bak.", delete=False) as tmpf,
-            mmap.mmap(tmpf.fileno(), file_size, access=mmap.ACCESS_WRITE
-                      ) as mmtmp_file):
-            mmtmp_file.write(bytes(ast.unparse(new_tree), encoding="utf-8"))
-            mmtmp_file.flush()
-
-        move(tmpf.file.name, base)
+    files: set[str] = {""}
+    dir: str = ""
+    wl: FileSystemBWlist = FileSystemBWlist({""})
+    bl: FileSystemBWlist = FileSystemBWlist({""})
+    depth: int = -1
+    tracker: PyFileTracker = PyFileTracker(files, dir, depth, bl, wl)
+    ast_annotation_removal(tracker)
 
 
 if __name__ == "__main__":

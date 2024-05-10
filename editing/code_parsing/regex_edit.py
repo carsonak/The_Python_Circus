@@ -1,17 +1,16 @@
 #!/usr/bin/python3
 """Module for re_annotation_remover."""
 
-import os
-
 import regex
 
 try:
     from editing.file_handlers.pyfile_tracker import PyFileTracker
 except ModuleNotFoundError:
     from sys import path
-    path.append(os.path.abspath("../.."))
+    from os.path import dirname, realpath
+    path.append(dirname(dirname(dirname(realpath(__file__)))))
     from editing.file_handlers.pyfile_tracker import PyFileTracker
-    del path
+    del path, dirname, realpath
 
 
 class PyRegexEdit:
