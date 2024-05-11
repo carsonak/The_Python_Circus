@@ -2,12 +2,14 @@
 """Module for remove_annotations."""
 
 import ast
-import autopep8
 # import json
-import mmap
+from mmap import mmap, ACCESS_READ
 import os
 import shutil
 from tempfile import NamedTemporaryFile
+
+import autopep8
+import rich
 
 try:
     from editing.code_parsing.ast_edit import TypeHintsRemover
@@ -53,7 +55,7 @@ def ast_annotation_removal(tracker: PyFileTracker) -> None:
 
         base: str = os.path.basename(filename)
         with (open(filename, "rb") as file,
-              mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as mmfile,
+              mmap(file.fileno(), 0, access=ACCESS_READ) as mmfile,
               NamedTemporaryFile("wb", prefix=f"{base}.bak.",
                                  delete=False) as tmpf
               ):
@@ -88,11 +90,12 @@ def main() -> None:
     """Entry point."""
     # Instantiate a file tracker
     files: set[str] = {""}
-    dir: str = ""
-    wl: FileSystemBWlist = FileSystemBWlist({""})
-    bl: FileSystemBWlist = FileSystemBWlist({""})
+    dir: str = "."
+    wl: FileSystemBWlist | None = None
+    bl: FileSystemBWlist | None = FileSystemBWlist(
+        {"editing/code_parsing/test_re.py"})
     depth: int = -1
-    tracker: PyFileTracker = PyFileTracker(files, dir, depth, bl, wl)
+    tracker: PyFileTracker = PyFileTracker(dir, depth, bl, wl)
     ast_annotation_removal(tracker)
 
 

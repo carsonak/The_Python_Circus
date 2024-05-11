@@ -15,6 +15,8 @@ except ModuleNotFoundError:
     from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
     del path, realpath, dirname
 
+from editing.file_handlers.filesystem_bw_list import strip_path
+
 
 class PyFileData:
     """A container for Python scipt data."""
@@ -195,10 +197,7 @@ class PyFileTracker:
                 os.path.isfile(file) and
                 os.path.splitext(file)[1] == ".py"
             ):
-                file = file.rstrip(os.sep)
-                self.__file_cache[
-                    file[2:] if file.startswith(f".{os.sep}") else file
-                    ] = PyFileData()
+                self.__file_cache[strip_path(file)] = PyFileData()
 
     @property
     def directory(self) -> str:
@@ -223,11 +222,7 @@ class PyFileTracker:
         if type(directory) is not str:
             raise TypeError("directory must be an instance of str")
 
-        directory = directory.rstrip(os.sep)
-        if directory.startswith(f".{os.sep}") and len(directory) > 2:
-            directory = directory[2:]
-
-        self.__workingdir = directory
+        self.__workingdir = strip_path(directory)
         for root, _dirs, files in walkdepth(
                 self.__workingdir, self.depth, self.whitelist, self.blacklist):
             self.add_files([os.sep.join((root, file)) for file in files])
@@ -259,9 +254,7 @@ class PyFileTracker:
         if type(filename) is not str:
             raise TypeError("filename must be a str")
 
-        filename = filename.rstrip(os.sep)
-        return self.__file_cache[
-            filename[2:] if filename.startswith(f".{os.sep}") else filename]
+        return self.__file_cache[strip_path(filename)]
 
     def __setitem__(self, filename: str, data: PyFileData) -> None:
         """Update a file in py_files with data.
@@ -284,7 +277,7 @@ class PyFileTracker:
         if not isinstance(data, PyFileData):
             raise TypeError("data must be an instance of PyFileData")
 
-        self.__file_cache[filename] = data
+        self.__file_cache[strip_path(filename)] = data
 
     def add_files(self, filenames: Iterable[str]) -> None:
         """Update py_files with new files.
@@ -308,10 +301,7 @@ class PyFileTracker:
                 os.path.isfile(file) and
                 os.path.splitext(file)[1] == ".py"
             ):
-                file = file.rstrip(os.sep)
-                self.__file_cache[
-                    file[2:] if file.startswith(f".{os.sep}") else file
-                    ] = PyFileData()
+                self.__file_cache[strip_path(file)] = PyFileData()
 
     def clear(self) -> None:
         """Clear all items in py_files."""
@@ -338,13 +328,13 @@ class PyFileTracker:
         if not isinstance(data, PyFileData):
             raise TypeError("data must be an instance of PyFileData")
 
-        self.__file_cache[filename] = data
+        self.__file_cache[strip_path(filename)] = data
 
 
 def walkdepth(start: str, max_depth: int = -1,
-                whitelist: FileSystemBWlist | None = None,
-                blacklist: FileSystemBWlist | None = None
-                ) -> Iterator[tuple[str, list[str], list[str]]]:
+              whitelist: FileSystemBWlist | None = None,
+              blacklist: FileSystemBWlist | None = None
+              ) -> Iterator[tuple[str, list[str], list[str]]]:
     """Genarate the directory tree of the given directory.
 
     This is a directory tree generator that behaves similar to os.walk()
@@ -395,10 +385,7 @@ def walkdepth(start: str, max_depth: int = -1,
         raise TypeError("blacklist must be None or "
                         "an instance of FileSystemBWlist")
 
-    start = start.rstrip(os.sep)
-    if start.startswith(f".{os.sep}") and len(start) > 2:
-        start = start[2:]
-
+    start = strip_path(start)
     base_depth: int = start.count(os.sep)
     for root, dirnames, filenames in os.walk(start):
         for dir, file in zip_longest(dirnames[:], filenames[:]):

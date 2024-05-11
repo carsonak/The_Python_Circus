@@ -2,6 +2,7 @@
 """Module for filesysytem_blacklist_whitelist."""
 
 from collections.abc import Iterable
+import os
 from os.path import basename
 
 try:
@@ -52,7 +53,7 @@ class FileSystemBWlist:
         tmp: set[str] = set()
         for f in files:
             if isinstance(f, str):
-                tmp.add(f[2:].rstrip("/") if f.startswith("./") else f)
+                tmp.add(strip_path(f))
 
         self.__fileList: BlackWhitelist = BlackWhitelist(tmp)
 
@@ -79,8 +80,7 @@ class FileSystemBWlist:
         tmp: set[str] = set()
         for d in directories:
             if isinstance(d, str):
-                tmp.add(d[2:].rstrip("/") if d.startswith("./") and
-                        len(d) > 2 else d)
+                tmp.add(strip_path(d))
 
         self.__dirList: BlackWhitelist = BlackWhitelist(tmp)
 
@@ -96,9 +96,7 @@ class FileSystemBWlist:
             path: a path to a file or directory.
         """
         if type(path) is str:
-            if path.startswith("./") and len(path) > 2:
-                path = path[2:]
-
+            strip_path(path)
             return (
                 (path in self.__fileList or path in self.__dirList) or
                 (basename(path) in self.__fileList or
@@ -114,13 +112,13 @@ class FileSystemBWlist:
             path: path to a file or an iterable with pathnames.
         """
         if type(path) is str:
-            tmp: set[str] = {path[2:] if path.startswith("./") else path}
+            tmp: set[str] = {strip_path(path)}
             self.__fileList.add(tmp)
         elif isinstance(path, Iterable):
             tmp = set()
             for p in path:
                 if isinstance(p, str):
-                    tmp.add(p[2:] if p.startswith("./") else p)
+                    tmp.add(strip_path(p))
 
             self.__fileList.add(tmp)
         else:
@@ -133,14 +131,13 @@ class FileSystemBWlist:
             path: path to a directory or an iterable with pathnames.
         """
         if type(path) is str:
-            tmp: set[str] = {path[2:] if path.startswith("./") and
-                             len(path) > 2 else path}
+            tmp: set[str] = {strip_path(path)}
             self.__dirList.add(tmp)
         elif isinstance(path, Iterable):
             tmp = set()
             for p in path:
                 if isinstance(p, str):
-                    tmp.add(p[2:] if p.startswith("./") and len(p) > 2 else p)
+                    tmp.add(strip_path(p))
 
             self.__dirList.add(tmp)
         else:
@@ -153,13 +150,13 @@ class FileSystemBWlist:
             path: path to a file or an iterable with pathnames.
         """
         if type(path) is str:
-            tmp: set[str] = {path[2:] if path.startswith("./") else path}
+            tmp: set[str] = {strip_path(path)}
             self.__fileList.add(tmp)
         elif isinstance(path, Iterable):
             tmp = set()
             for p in path:
                 if isinstance(p, str):
-                    tmp.add(p[2:] if p.startswith("./") else p)
+                    tmp.add(strip_path(p))
 
             self.__fileList.discard(tmp)
 
@@ -170,14 +167,13 @@ class FileSystemBWlist:
             path: a directory pathname or an iterable with pathnames.
         """
         if type(path) is str:
-            tmp: set[str] = {path[2:] if path.startswith("./") and
-                             len(path) > 2 else path}
+            tmp: set[str] = {strip_path(path)}
             self.__dirList.add(tmp)
         elif isinstance(path, Iterable):
             tmp = set()
             for p in path:
                 if isinstance(p, str):
-                    tmp.add(p[2:] if p.startswith("./") and len(p) > 2 else p)
+                    tmp.add(strip_path(p))
 
             self.__dirList.discard(tmp)
 
@@ -193,9 +189,7 @@ class FileSystemBWlist:
             a str of either the full path or basename if found else None.
         """
         if type(path) is str:
-            if path.startswith("./"):
-                path = path[2:]
-
+            path = strip_path(path)
             if path in self.__fileList:
                 return path
             elif basename(path) in self.__fileList:
@@ -215,9 +209,7 @@ class FileSystemBWlist:
             a str of either the full path or basename if found else None.
         """
         if type(path) is str:
-            if path.startswith("./") and len(path) > 2:
-                path = path[2:]
-
+            path = strip_path(path)
             if path in self.__dirList:
                 return path
             elif basename(path) in self.__dirList:
@@ -237,3 +229,12 @@ class FileSystemBWlist:
         """Clear both files and directories Lists."""
         self.clear_dirs()
         self.clear_files()
+
+
+def strip_path(path: str) -> str:
+    """Remove trailing slashes and ./"""
+    path = path.strip(os.sep)
+    if path.startswith(f".{os.sep}"):
+        path = path[2:]
+
+    return path
