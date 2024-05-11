@@ -81,7 +81,7 @@ def ast_annotation_removal(tracker: PyFileTracker) -> None:
         # Copy over metadata
         shutil.copystat(filename, tmpf.file.name)
         # Replace original file
-        shutil.move(tmpf.file.name, filename)
+        shutil.move(tmpf.file.name, f"experiment{os.sep}{base}")
 
         print("Done")
 
@@ -89,13 +89,13 @@ def ast_annotation_removal(tracker: PyFileTracker) -> None:
 def main() -> None:
     """Entry point."""
     # Instantiate a file tracker
-    files: set[str] = {""}
-    dir: str = "."
+    files: set[str] = set()
+    dir: str = "./"
     wl: FileSystemBWlist | None = None
     bl: FileSystemBWlist | None = FileSystemBWlist(
         {"editing/code_parsing/test_re.py"})
     depth: int = -1
-    tracker: PyFileTracker = PyFileTracker(dir, depth, bl, wl)
+    tracker: PyFileTracker = PyFileTracker(files, dir, depth, bl, wl)
     ast_annotation_removal(tracker)
 
 
