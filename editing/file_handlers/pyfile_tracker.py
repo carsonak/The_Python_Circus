@@ -5,6 +5,7 @@ import ast
 from collections.abc import Iterable, Iterator
 from itertools import zip_longest
 import os
+from types import MappingProxyType
 
 try:
     from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
@@ -21,22 +22,22 @@ from editing.file_handlers.filesystem_bw_list import strip_path
 class PyFileData:
     """A container for Python scipt data."""
 
-    def __init__(self, contents: str = "", tree: ast.AST | None = None):
+    def __init__(self, text: str = "", tree: ast.AST | None = None):
         """Initialise a container for Python scipt data."""
-        self.contents = contents
+        self.text = text
         self.tree = tree
 
     @property
-    def contents(self) -> str:
+    def text(self) -> str:
         """Text content of a python script."""
-        return self.__contents
+        return self.__text
 
-    @contents.setter
-    def contents(self, val: str) -> None:
-        """Initialise contents.
+    @text.setter
+    def text(self, val: str) -> None:
+        """Initialise text.
 
         Args:
-            val: a string representing the raw text of a python script.
+            val: a string representing the text of a python script.
 
         Raises:
             TypeError: val is not a string.
@@ -44,7 +45,7 @@ class PyFileData:
         if not isinstance(val, str):
             raise TypeError("object must be an instance of a string")
 
-        self.__contents = val
+        self.__text = val
 
     @property
     def tree(self) -> ast.AST | None:
@@ -66,22 +67,23 @@ class PyFileData:
 
         self.__tree = val
 
-    def __repr__(self) -> str:
-        """Return an official string representation of this instance."""
-        return f"{self.__class__.__name__}({self.contents}, {self.tree})"
+    def __str__(self) -> str:
+        """Return a string with details of this instance."""
+        return (f"{self.__class__.__name__}"
+                f"(<{type(self.text).__name__} object at {hex(id(self.text))}>, {self.tree})")
 
 
 class PyFileTracker:
     """A data tracker for Python scripts."""
 
-    def __init__(self, py_files: Iterable[str] = (), directory: str = "",
+    def __init__(self, pyfiles: Iterable[str] = (), directory: str = "",
                  max_descent: int = -1,
                  blacklist: FileSystemBWlist | None = None,
                  whitelist: FileSystemBWlist | None = None):
         """Initialise instance attributes for tracking files.
 
         Args:
-            py_files: an iterable of file pathnames.
+            pyfiles: an iterable of file pathnames.
             directory: a pathname to a python project directory.
             max_descent: an int indicating how many levels to descend while
                 searching for files. A negative int means a full depth search,
@@ -92,12 +94,73 @@ class PyFileTracker:
             whitelist: a list of file/directory basenames to search for in a
                 directory.
         """
-        self.py_files = py_files
-
+        self.pyfiles = pyfiles  # type: ignore
+        self._pfmap: MappingProxyType[str, PyFileData] = MappingProxyType(
+            self.__pyfiles)
         self.depth = max_descent
         self.blacklist = blacklist
         self.whitelist = whitelist
         self.directory = directory
+
+    @property
+    def pyfiles(self) -> MappingProxyType[str, PyFileData]:
+        """A mapping proxy of the files and their data."""
+        return self._pfmap
+
+    @pyfiles.setter
+    def pyfiles(self, pyfiles: Iterable[str]) -> None:
+        """Initialise pyfiles.
+
+        Initialises a new mapping of filenames to their data "contents" and
+        "tree". Any items in the iterable that are: not type str, not valid
+        filepaths or don't have a py extension, will be ignored.
+        The filenames will not be affected by an update to directory.
+
+        Args:
+            pyfiles: An iterable of file pathnames.
+
+        Raises:
+            TypeError: pyfiles is not an iterable or is a string.
+        """
+        if not isinstance(pyfiles, Iterable) or type(pyfiles) is str:
+            raise TypeError("pyfiles must be an Iterable of strings.")
+
+        self.__pyfiles: dict[str, PyFileData] = {}
+        for file in pyfiles:
+            if (
+                type(file) is str and
+                os.path.isfile(file) and
+                os.path.splitext(file)[1] == ".py"
+            ):
+                self.__pyfiles[strip_path(file)] = PyFileData()
+
+    @property
+    def directory(self) -> str:
+        """Pathname of a directory with Python scripts."""
+        return self.__workingdir
+
+    @directory.setter
+    def directory(self, directory: str) -> None:
+        """Initialise pyfiles with files in directory.
+
+        The given directory will be searched for Python scripts with depth,
+        whitelist and blacklist applied to the search. All Python scripts
+        found will be added to pyfiles as a relative path from directory.
+        The pyfiles will only be updated and not cleared.
+
+        Args:
+            directory: pathname of a directory with Python scripts.
+
+        Raises:
+            TypeError: directory is not a string.
+        """
+        if type(directory) is not str:
+            raise TypeError("directory must be an instance of str")
+
+        self.__workingdir = strip_path(directory)
+        for root, _dirs, files in walkdepth(
+                self.__workingdir, self.depth, self.whitelist, self.blacklist):
+            self.add_files([os.sep.join((root, file)) for file in files])
 
     @property
     def depth(self) -> int:
@@ -167,69 +230,9 @@ class PyFileTracker:
 
         self.__whitelist = whitelist
 
-    @property
-    def py_files(self) -> Iterable[str]:
-        """An iterable of cached file names."""
-        return self.__file_cache.keys()
-
-    @py_files.setter
-    def py_files(self, py_files: Iterable[str]) -> None:
-        """Initialise py_files.
-
-        Initialises a new mapping of filenames to their data "contents" and
-        "tree". Any items in the iterable that are: not type str, not valid
-        filepaths or don't have a py extension, will be ignored.
-        The filenames will not be affected by an update to directory.
-
-        Args:
-            py_files: An iterable of file pathnames.
-
-        Raises:
-            TypeError: py_files is not an iterable or is a string.
-        """
-        if not isinstance(py_files, Iterable) or type(py_files) is str:
-            raise TypeError("py_files must be an Iterable of strings.")
-
-        self.__file_cache: dict[str, PyFileData] = {}
-        for file in py_files:
-            if (
-                type(file) is str and
-                os.path.isfile(file) and
-                os.path.splitext(file)[1] == ".py"
-            ):
-                self.__file_cache[strip_path(file)] = PyFileData()
-
-    @property
-    def directory(self) -> str:
-        """Pathname of a directory with Python scripts."""
-        return self.__workingdir
-
-    @directory.setter
-    def directory(self, directory: str) -> None:
-        """Initialise py_files with files in directory.
-
-        The given directory will be searched for Python scripts with depth,
-        whitelist and blacklist applied to the search. All Python scripts
-        found will be added to py_files as a relative path from directory.
-        The py_files will only be updated and not cleared.
-
-        Args:
-            directory: pathname of a directory with Python scripts.
-
-        Raises:
-            TypeError: directory is not a string.
-        """
-        if type(directory) is not str:
-            raise TypeError("directory must be an instance of str")
-
-        self.__workingdir = strip_path(directory)
-        for root, _dirs, files in walkdepth(
-                self.__workingdir, self.depth, self.whitelist, self.blacklist):
-            self.add_files([os.sep.join((root, file)) for file in files])
-
     def __repr__(self) -> str:
         """Return official string representation of this instance."""
-        return (f"{self.__class__.__name__}({self.py_files}, "
+        return (f"{self.__class__.__name__}({self.pyfiles}, "
                 f"{self.directory}, {self.depth}, {self.blacklist}, "
                 f"{self.whitelist})")
 
@@ -238,7 +241,7 @@ class PyFileTracker:
 
         Filename should be as it was added. For example if a directory search
         was performed, filename will be the path to the file starting from the
-        project directory name. If filename was added to py_files directly, the
+        project directory name. If filename was added to pyfiles directly, the
         name should be as it was added.
 
         Args:
@@ -249,19 +252,19 @@ class PyFileTracker:
 
         Raises:
             TypeError: filename is not a str type
-            KeyError: filename does not exist in py_files.
+            KeyError: filename does not exist in pyfiles.
         """
         if type(filename) is not str:
             raise TypeError("filename must be a str")
 
-        return self.__file_cache[strip_path(filename)]
+        return self.__pyfiles[strip_path(filename)]
 
     def __setitem__(self, filename: str, data: PyFileData) -> None:
-        """Update a file in py_files with data.
+        """Update a file in pyfiles with data.
 
         Filename should be as it was added. For example if a directory search
         was performed, filename will be the path to the file starting from the
-        project directory name. If filename was added to py_files directly, the
+        project directory name. If filename was added to pyfiles directly, the
         name should be as it was added.
 
         Args:
@@ -277,12 +280,12 @@ class PyFileTracker:
         if not isinstance(data, PyFileData):
             raise TypeError("data must be an instance of PyFileData")
 
-        self.__file_cache[strip_path(filename)] = data
+        self.__pyfiles[strip_path(filename)] = data
 
     def add_files(self, filenames: Iterable[str]) -> None:
-        """Update py_files with new files.
+        """Update pyfiles with new files.
 
-        If a file name already exists in py_files, it's data will be cleared.
+        If a file name already exists in pyfiles, it's data will be cleared.
         Items in the iterable that are: not strings, valid file paths or don't
         have a .py extension will be ignored.
 
@@ -301,18 +304,18 @@ class PyFileTracker:
                 os.path.isfile(file) and
                 os.path.splitext(file)[1] == ".py"
             ):
-                self.__file_cache[strip_path(file)] = PyFileData()
+                self.__pyfiles[strip_path(file)] = PyFileData()
 
     def clear(self) -> None:
-        """Clear all items in py_files."""
-        self.__file_cache = {}
+        """Clear all items in pyfiles."""
+        self.__pyfiles = {}
 
     def update(self, filename: str, data: PyFileData) -> None:
-        """Update a file in py_files with data.
+        """Update a file in pyfiles with data.
 
         Filename should be as it was added. For example if a directory search
         was performed, filename will be the path to the file starting from the
-        project directory name. If filename was added to py_files directly, the
+        project directory name. If filename was added to pyfiles directly, the
         name should be as it was added.
 
         Args:
@@ -328,7 +331,7 @@ class PyFileTracker:
         if not isinstance(data, PyFileData):
             raise TypeError("data must be an instance of PyFileData")
 
-        self.__file_cache[strip_path(filename)] = data
+        self.__pyfiles[strip_path(filename)] = data
 
 
 def walkdepth(start: str, max_depth: int = -1,

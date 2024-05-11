@@ -232,7 +232,17 @@ class FileSystemBWlist:
 
 
 def strip_path(path: str) -> str:
-    """Remove trailing slashes and ./"""
+    """Remove trailing slashes and ./ from pathnames.
+
+    Args:
+        path: a string represeting a pathname.
+
+    Returns:
+        The modified string.
+    """
+    if not isinstance(path, str):
+        raise TypeError("path must be a string")
+
     path = path.strip(os.sep)
     if path.startswith(f".{os.sep}"):
         path = path[2:]
