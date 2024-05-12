@@ -16,7 +16,7 @@ except ModuleNotFoundError:
     from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
     del path, realpath, dirname
 
-from editing.file_handlers.filesystem_bw_list import strip_path
+from editing.text.string import strip_path
 
 
 class PyFileData:
@@ -70,7 +70,8 @@ class PyFileData:
     def __str__(self) -> str:
         """Return a string with details of this instance."""
         return (f"{self.__class__.__name__}"
-                f"(<{type(self.text).__name__} object at {hex(id(self.text))}>, {self.tree})")
+                f"(<{type(self.text).__name__} object at "
+                f"{hex(id(self.text))}>, {self.tree})")
 
 
 class PyFileTracker:

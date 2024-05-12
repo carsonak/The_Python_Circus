@@ -2,7 +2,6 @@
 """Module for filesysytem_blacklist_whitelist."""
 
 from collections.abc import Iterable
-import os
 from os.path import basename
 
 try:
@@ -13,6 +12,8 @@ except ModuleNotFoundError:
     path.append(dirname(dirname(dirname(realpath(__file__)))))
     from editing.file_handlers.blackwhite_list import BlackWhitelist
     del path, realpath, dirname
+
+from editing.text.string import strip_path
 
 
 class FileSystemBWlist:
@@ -229,22 +230,3 @@ class FileSystemBWlist:
         """Clear both files and directories Lists."""
         self.clear_dirs()
         self.clear_files()
-
-
-def strip_path(path: str) -> str:
-    """Remove trailing slashes and ./ from pathnames.
-
-    Args:
-        path: a string represeting a pathname.
-
-    Returns:
-        The modified string.
-    """
-    if not isinstance(path, str):
-        raise TypeError("path must be a string")
-
-    path = path.strip(os.sep)
-    if path.startswith(f".{os.sep}"):
-        path = path[2:]
-
-    return path
