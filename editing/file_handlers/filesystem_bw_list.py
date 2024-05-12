@@ -96,7 +96,7 @@ class FileSystemBWlist:
             path: a path to a file or directory.
         """
         if type(path) is str:
-            strip_path(path)
+            path = strip_path(path)
             return (
                 (path in self.__fileList or path in self.__dirList) or
                 (basename(path) in self.__fileList or

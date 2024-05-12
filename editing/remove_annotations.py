@@ -53,36 +53,26 @@ def ast_annotation_removal(filename: str, data: PyFileData) -> None:
     """Remove type annotations from files."""
     base: str = os.path.basename(filename)
     with (open(filename, "rb") as file,
-            mmap(file.fileno(), 0, access=ACCESS_READ) as mmfile,
-            NamedTemporaryFile("wb", prefix=f"{base}.bak.",
-                               delete=False) as tmpf
-          ):
+          mmap(file.fileno(), 0, access=ACCESS_READ) as mmfile,
+          NamedTemporaryFile(
+              "wb", prefix=f"{base}.bak.", delete=False) as tmpf):
         # Generate AST for the file
-        print(
-            f"Building Abstract Syntax Trees for: {filename}")
-
-        tree: ast.Module = ast.parse(mmfile, filename)
-        data.tree = tree
+        data.tree = ast.parse(mmfile, filename)
         # Parse the AST, removing type annotations
-        tree = TypeHintsRemover().visit(tree)
+        TypeHintsRemover().visit(data.tree)
         # Write to a temporary file
-        print("Generating code...")
-
-        tmpf.write(bytes(f"#!/usr/bin/python3\n{ast.unparse(tree)}",
-                         encoding="utf-8"))
+        tmpf.write(
+            bytes(f"#!/usr/bin/python3\n{ast.unparse(data.tree)}",
+                  encoding="utf-8"))
         tmpf.flush()
 
     # Clean up code with a formatter
-    print("Tidying up...", end="")
-
     autopep8.fix_file(
         tmpf.file.name, autopep8._get_options({"in_place": True}, False))
     # Copy over metadata
     shutil.copystat(filename, tmpf.file.name)
     # Replace original file
     shutil.move(tmpf.file.name, f"experiment{os.sep}{base}")
-
-    print("Done")
 
 
 def main() -> None:
@@ -94,7 +84,8 @@ def main() -> None:
     bl: FileSystemBWlist | None = FileSystemBWlist(
         {"editing/code_parsing/test_re.py"})
     depth: int = -1
-    tracker: PyFileTracker = PyFileTracker(files, dir, depth, bl, wl)
+    tracker: PyFileTracker = PyFileTracker(
+        files, dir, depth, blacklist=bl, whitelist=wl)
 
     for file, data in tracker.pyfiles.items():
         if not os.stat(file).st_size:
