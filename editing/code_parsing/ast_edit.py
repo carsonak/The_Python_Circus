@@ -2,6 +2,7 @@
 """Module for ast_remove_annotation."""
 
 import ast
+from typing import Union
 
 
 class TypeHintsRemover(ast.NodeTransformer):
@@ -15,6 +16,27 @@ class TypeHintsRemover(ast.NodeTransformer):
     __vip_decorators: set[str] = {"dataclass"}
     __vvip_decorators: set[str] = {
         "no_type_check", "no_type_check_decorator", "type_check_only"}
+
+    def no_value_var_annotation(
+        self, node: Union[
+            ast.Module | ast.AsyncFunctionDef | ast.FunctionDef |
+            ast.AsyncWith | ast.Interactive | ast.ClassDef | ast.For |
+            ast.AsyncFor | ast.If | ast.While | ast.With | ast.ExceptHandler |
+            ast.Try | ast.match_case
+        ]
+    ) -> ast.AST:
+        """"""
+        ann_backup: list[tuple[int, ast.AnnAssign]] = []
+        for pos, item in enumerate(node.body[:]):
+            if isinstance(item, ast.AnnAssign) and item.value is None:
+                ann_backup.append((pos, item))
+                node.body.remove(item)
+
+        self.generic_visit(node)
+        for pos, item in ann_backup:
+            node.body.insert(pos, item)
+
+        return node
 
     def visit_arg(self, node: ast.arg) -> ast.AST:  # noqa: N802
         """Remove function parameter annotations.
@@ -50,7 +72,7 @@ class TypeHintsRemover(ast.NodeTransformer):
                 return node
 
         node.returns = None
-        return self.generic_visit(node)
+        return self.no_value_var_annotation(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST:  # noqa: N802
         """Protect assign annotations in certain class defition scenarios.
@@ -76,7 +98,7 @@ class TypeHintsRemover(ast.NodeTransformer):
             ):
                 return node
 
-        node_backup: list[ast.AnnAssign] = []
+        node_backup: list[tuple[int, ast.AnnAssign]] = []
         for b in node.bases:
             if (
                 (isinstance(b, ast.Name) and
@@ -86,9 +108,9 @@ class TypeHintsRemover(ast.NodeTransformer):
                 (isinstance(b, ast.Attribute) and
                  b.attr in self.__vip_bases)
             ):
-                for itm in node.body[:]:
+                for pos, itm in enumerate(node.body[:]):
                     if isinstance(itm, ast.AnnAssign):
-                        node_backup.append(itm)
+                        node_backup.append((pos, itm))
                         node.body.remove(itm)
                 else:
                     break
@@ -102,17 +124,17 @@ class TypeHintsRemover(ast.NodeTransformer):
                 (isinstance(d, ast.Attribute) and
                  d.attr in self.__vip_decorators)
             ):
-                for itm in node.body[:]:
+                for pos, itm in enumerate(node.body[:]):
                     if isinstance(itm, ast.AnnAssign):
-                        node_backup.append(itm)
+                        node_backup.append((pos, itm))
                         node.body.remove(itm)
                 else:
                     break
 
-        node = self.generic_visit(node)  # type: ignore
+        self.no_value_var_annotation(node)
         if node is not None:
-            for itm in node_backup:
-                node.body.insert(0, itm)
+            for pos, itm in node_backup:
+                node.body.insert(pos, itm)
 
         return node
 
@@ -135,6 +157,66 @@ class TypeHintsRemover(ast.NodeTransformer):
                 assign_kwargs[k] = v
 
         return self.generic_visit(ast.Assign(**assign_kwargs))
+
+    def visit_Module(self, node: ast.Module) -> ast.AST:
+        """"""
+        return self.no_value_var_annotation(node)
+
+    def visit_Interactive(self, node: ast.Interactive) -> ast.AST:
+        """"""
+        return self.no_value_var_annotation(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> ast.AST:
+        """"""
+        for d in node.decorator_list:
+            if (
+                (isinstance(d, ast.Name) and
+                 d.id in self.__vvip_decorators) or
+                (isinstance(d, ast.Constant) and
+                 d.value in self.__vvip_decorators) or
+                (isinstance(d, ast.Attribute) and
+                 d.attr in self.__vvip_decorators)
+            ):
+                return node
+
+        node.returns = None
+        return self.no_value_var_annotation(node)
+
+    def visit_For(self, node: ast.For) -> ast.AST:
+        """"""
+        return self.no_value_var_annotation(node)
+
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> ast.AST:
+        """"""
+        return self.no_value_var_annotation(node)
+
+    def visit_While(self, node: ast.While) -> ast.AST:
+        """"""
+        return self.no_value_var_annotation(node)
+
+    def visit_With(self, node: ast.With) -> ast.AST:
+        """"""
+        return self.no_value_var_annotation(node)
+
+    def visit_AsyncWith(self, node: ast.AsyncWith) -> ast.AST:
+        """"""
+        return self.no_value_var_annotation(node)
+
+    def visit_If(self, node: ast.If) -> ast.AST:
+        """"""
+        return self.no_value_var_annotation(node)
+
+    def visit_Try(self, node: ast.Try) -> ast.AST:
+        """"""
+        return self.no_value_var_annotation(node)
+
+    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> ast.AST:
+        """"""
+        return self.no_value_var_annotation(node)
+
+    def visit_match_case(self, node: ast.match_case) -> ast.AST:
+        """"""
+        return self.no_value_var_annotation(node)
 
 
 if __name__ == "__main__":

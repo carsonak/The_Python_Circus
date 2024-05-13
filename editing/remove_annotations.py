@@ -8,7 +8,7 @@ import shutil
 import sys
 from tempfile import NamedTemporaryFile
 
-import autopep8
+import autopep8  # type: ignore
 from rich import box
 from rich.console import Group
 from rich.live import Live
@@ -119,7 +119,7 @@ def ast_annotation_removal(
 
         raise err
 
-    shutil.move(tmpf.file.name, f"experiment{os.sep}{base}")
+    shutil.move(tmpf.file.name, file.name)
     if isinstance(file_progress, Progress):
         file_progress.update(
             file_task_id, advance=1, visible=False,
@@ -135,10 +135,10 @@ def main(argv: list[str]) -> None:
     """
     # Instantiate a file tracker
     files: set[str] = set()
-    dir: str = "./"
+    dir: str = "./env_arcade/arcade"
     wl: FileSystemBWlist | None = None
     bl: FileSystemBWlist | None = FileSystemBWlist(
-        {"test_re.py"}, {".git", "__pycache__", ".mypy_cache"})
+        {".git", "__pycache__", ".mypy_cache", ".pytest_cache"})
     depth: int = -1
     tracker: PyFileTracker = PyFileTracker(
         files, dir, depth, blacklist=bl, whitelist=wl)
@@ -162,7 +162,7 @@ def main(argv: list[str]) -> None:
             task_id = p.current_file_progress.add_task(
                 description="Editing...", file=file)
 
-            ast_annotation_removal(file, data)
+            ast_annotation_removal(file, data, p.file_progress)
 
             p.current_file_progress.stop_task(task_id)
             p.current_file_progress.update(
