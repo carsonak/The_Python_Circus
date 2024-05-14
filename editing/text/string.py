@@ -13,6 +13,9 @@ def strip_path(path: str) -> str:
 
     Returns:
         The modified string.
+
+    Raises:
+        TypeError: path is not a str object.
     """
     if not isinstance(path, str):
         raise TypeError("path must be a string")

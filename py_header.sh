@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 # Add a shebang and a simple docstring to all python files in the workspace
 
 work_files=$(find . -name "*.py" -type f)

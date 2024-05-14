@@ -5,7 +5,10 @@ import ast
 from collections.abc import Iterable, Iterator
 from itertools import zip_longest
 import os
+import re
+from sys import stderr
 from types import MappingProxyType
+from typing import NamedTuple, TypedDict, Union
 
 try:
     from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
@@ -19,72 +22,225 @@ except ModuleNotFoundError:
 from editing.text.string import strip_path
 
 
+class FileType(NamedTuple):
+    """Indicates file type."""
+    filename: str
+    is_file: bool = False
+    file_type: str | None = None
+
+    def __repr__(self) -> str:
+        return (
+            f"FileType(filename={self.filename}, "
+            f"is_file={self.is_file}, "
+            f"is_pyscript={self.file_type})"
+        )
+
+
+class FileBase(TypedDict):
+    """Stores path to a file."""
+    file: str | bytes | os.PathLike
+
+
+class File(FileBase, total=False):
+    """Container for a file's contents."""
+    text: str
+    byte_str: bytes
+    tree: ast.AST
+
+
+def get_filetype(file: str | bytes | os.PathLike) -> FileType:
+    """Determine file type from extnsion or from the shebang.
+
+    Args:
+        file: a str or bytes object representing a path,
+        or an object implementing the os.PathLike protocol.
+
+    Returns:
+        NamedTuple[filename: str, is_file: bool, file_type: str]
+
+    Raises:
+        TypeError: same errors that will be raised by os.fspath(file).
+    """
+    filename: str = str(os.fspath(file))
+    is_file: bool = os.path.isfile(filename)
+    if is_file is False:
+        return FileType(filename, is_file)
+
+    file_type: str = os.path.splitext(filename)[1]
+    first_line: str = ""
+    if not file_type:
+        try:
+            with open(filename, "r") as f:
+                first_line = f.readline().strip()
+        except PermissionError:
+            pass
+
+    match_obj: re.Match | None = re.match(
+        r"""
+        ^\#!
+        (?P<dir_path> \/+ (?: (?<!-) [\w.-]+ \/+ )* )
+        (?P<exe> (?<!-) [\w.-]+)
+        (?P<opts>\ +(?:-[\w-]+(?:\ +|=)?) )*$
+        """,
+        first_line,
+        re.VERBOSE,
+    )
+    if match_obj is None:
+        match_obj = re.match(
+            r"""
+            ^\#!
+            (?P<dir_path> \/+ (?: (?<!-) [\w.-]+ \/+ )* )
+            env\ +#
+            (?P<opts> (?:-[\w-]+=?)\ * )*
+            (?P<exe> (?<!-) [\w.-]+ )
+            """,
+            first_line,
+            re.VERBOSE
+        )
+
+    if match_obj is not None:
+        file_type = match_obj.group("exe").strip()
+
+    return FileType(filename, is_file, file_type)
+
+
 class PyFileData:
     """A container for Python scipt data."""
 
-    def __init__(self, text: str = "", tree: ast.AST | None = None):
+    def __init__(
+        self, filepath: str | bytes | os.PathLike | None = None,
+        content: str | bytes = "", tree: ast.AST | None = None,
+    ):
         """Initialise a container for Python scipt data."""
-        self.text = text
+        self.__file: File = File(file="")
+        self.filename = filepath
+        self.content = content
         self.tree = tree
 
     @property
-    def text(self) -> str:
-        """Text content of a python script."""
-        return self.__text
+    def file(self) -> File:
+        """A TypedDict with filename and and it's coontents."""
+        return self.__file
 
-    @text.setter
-    def text(self, val: str) -> None:
-        """Initialise text.
+    @property
+    def filename(self) -> str | None:
+        """Path to a file."""
+        return self.__filename
+
+    @filename.setter
+    def filename(self, filepath: str | bytes | os.PathLike | None) -> None:
+        """Initialise filename.
 
         Args:
-            val: a string representing the text of a python script.
+            filepath: a str or bytes object representing a path,
+                or an object implementing the os.PathLike protocol.
 
         Raises:
-            TypeError: val is not a string.
+            TypeError: same errors that will be raised by os.fspath(filepath).
+            ValueError: cannot ascertain if file is a python script
+                filepath is not a path to a file
         """
-        if not isinstance(val, str):
-            raise TypeError("object must be an instance of a string")
+        self.__filename: str | None = None
+        if filepath is None:
+            return
 
-        self.__text = val
+        self.__filename, is_file, file_type = get_filetype(filepath)
+        if is_file is False:
+            raise ValueError("filepath is not a path to a file")
+
+        if (
+            file_type is None or
+            file_type != ".py" or
+            not file_type.startswith("python")
+        ):
+            raise ValueError(
+                "Cannot ascertain if file is a python script. "
+                "Consider adding a .py extension or a shebang."
+            )
+
+        self.__file["file"] = self.__filename
+
+    @property
+    def content(self) -> str | bytes:
+        """Contents of a python script."""
+        return self.__content
+
+    @content.setter
+    def content(self, val: str | bytes) -> None:
+        f"""Initialise content.
+
+        Args:
+            val: a str or bytes object representing the content of
+                a python script.
+
+        Raises:
+            TypeError: val is not an instance of {str} or {bytes}.
+        """
+        if isinstance(val, str):
+            self.__file["text"] = val
+        elif isinstance(val, bytes):
+            self.__file["byte_str"] = val
+        else:
+            raise TypeError(f"object must be an instance of {str} or {bytes}")
+
+        self.__content = val
 
     @property
     def tree(self) -> ast.AST | None:
-        """Abstract Syntax Tree of a Python script."""
+        """Abstract Syntax Tree of a Python script or None."""
         return self.__tree
 
     @tree.setter
     def tree(self, val: ast.AST | None) -> None:
-        """Initialise tree.
+        f"""Initialise tree.
 
         Args:
-            val: the abstract syntax tree of a Python script.
+            val: the abstract syntax tree of a Python script or None.
 
         Raises:
-            TypeError: val is not an instance of ast.AST or None.
+            TypeError: val is not an instance of {ast.AST} or {None}.
         """
-        if val and not isinstance(val, ast.AST):
-            raise TypeError("object must be an instance of ast.AST or none")
+        self.__tree: ast.AST | None = None
+        if val is None:
+            return
+
+        if not isinstance(val, ast.AST):
+            raise TypeError(
+                f"object must be an instance of {ast.AST} or {None}")
 
         self.__tree = val
+        self.__file["tree"] = val
 
     def __str__(self) -> str:
         """Return a string with details of this instance."""
-        return (f"{self.__class__.__name__}"
-                f"(<{type(self.text).__name__} object at "
-                f"{hex(id(self.text))}>, {self.tree})")
+        return (
+            f"{self.__class__.__name__}("
+            f"{self.filename}, "
+            f"<{type(self.content).__name__} object at "
+            f"{hex(id(self.content))}>, "
+            f"{self.tree})"
+        )
 
 
 class PyFileTracker:
     """A data tracker for Python scripts."""
 
-    def __init__(self, pyfiles: Iterable[str] = (), directory: str = "",
-                 max_descent: int = -1,
-                 blacklist: FileSystemBWlist | None = None,
-                 whitelist: FileSystemBWlist | None = None):
-        """Initialise instance attributes for tracking files.
+    def __init__(
+        self,
+        pyfiles: Union[
+            Iterable[str | bytes | os.PathLike] |
+            str | bytes | os.PathLike
+        ] = (),
+        directory: str | bytes | os.PathLike = "",
+        max_descent: int = -1,
+        blacklist: FileSystemBWlist | None = None,
+        whitelist: FileSystemBWlist | None = None,
+        pattern: str | None = None,
+    ):
+        f"""Initialise instance attributes for tracking files.
 
         Args:
-            pyfiles: an iterable of file pathnames.
+            pyfiles: a {os.PathLike} object or an Iterable of file paths.
             directory: a pathname to a python project directory.
             max_descent: an int indicating how many levels to descend while
                 searching for files. A negative int means a full depth search,
@@ -95,12 +251,13 @@ class PyFileTracker:
             whitelist: a list of file/directory basenames to search for in a
                 directory.
         """
-        self.pyfiles = pyfiles  # type: ignore
+        self.pyfiles = pyfiles
         self._pfmap: MappingProxyType[str, PyFileData] = MappingProxyType(
             self.__pyfiles)
         self.depth = max_descent
         self.blacklist = blacklist
         self.whitelist = whitelist
+        self.pattern = pattern
         self.directory = directory
 
     @property
@@ -109,39 +266,63 @@ class PyFileTracker:
         return self._pfmap
 
     @pyfiles.setter
-    def pyfiles(self, pyfiles: Iterable[str]) -> None:
-        """Initialise pyfiles.
+    def pyfiles(
+            self,
+            pyfiles: Union[
+                Iterable[str | bytes | os.PathLike] |
+                str | bytes | os.PathLike
+            ],
+    ) -> None:
+        f"""Initialise pyfiles.
 
-        Initialises a new mapping of filenames to their data "contents" and
-        "tree". Any items in the iterable that are: not type str, not valid
-        filepaths or don't have a py extension, will be ignored.
-        The filenames will not be affected by an update to directory.
+        Initialises a new mapping of filenames to instances of {PyFileData}.
+        If an iterable is provided, any objects in it that raise a TypeError
+        when called with os.fspath(), or that cannot be validated as Python
+        scripts via their extensions or shebangs will be ignored.
+
+        Updates to self.directory will not remove any files already stored.
 
         Args:
-            pyfiles: An iterable of file pathnames.
+            pyfiles: a path to a file or an Iterable of file paths.
 
         Raises:
-            TypeError: pyfiles is not an iterable or is a string.
+            TypeError: pyfiles is neither an instance of {os.PathLike},
+                {str} or {bytes} nor an iterable of the same.
         """
-        if not isinstance(pyfiles, Iterable) or type(pyfiles) is str:
-            raise TypeError("pyfiles must be an Iterable of strings.")
+        temp: PyFileData
+        if isinstance(pyfiles, (str, bytes, os.PathLike)):
+            temp = PyFileData(pyfiles)
+            if temp.filename:
+                temp.filename = strip_path(temp.filename)
+                self.__pyfiles[temp.filename] = temp
+
+            return
+
+        if not isinstance(pyfiles, Iterable):
+            raise TypeError(
+                f"pyfiles must be an instance of {str}, {bytes} or "
+                f"{os.PathLike} objects or an Iterable of the same."
+            )
 
         self.__pyfiles: dict[str, PyFileData] = {}
         for file in pyfiles:
-            if (
-                type(file) is str and
-                os.path.isfile(file) and
-                os.path.splitext(file)[1] == ".py"
-            ):
-                self.__pyfiles[strip_path(file)] = PyFileData()
+            if type(file) is str:
+                try:
+                    temp = PyFileData(file)
+                except (TypeError, ValueError) as err:
+                    print(f"Skipping {file}: Reason: {err}", file=stderr)
+                    continue
+
+                if temp.filename:
+                    self.__pyfiles[temp.filename] = temp
 
     @property
     def directory(self) -> str:
-        """Pathname of a directory with Python scripts."""
+        """Path to a directory with Python scripts."""
         return self.__workingdir
 
     @directory.setter
-    def directory(self, directory: str) -> None:
+    def directory(self, directory: str | bytes | os.PathLike) -> None:
         """Initialise pyfiles with files in directory.
 
         The given directory will be searched for Python scripts with depth,
@@ -150,17 +331,18 @@ class PyFileTracker:
         The pyfiles will only be updated and not cleared.
 
         Args:
-            directory: pathname of a directory with Python scripts.
+            directory: path to a directory with Python scripts.
 
         Raises:
-            TypeError: directory is not a string.
+            Any errors raised by os.fspath(directory).
         """
-        if type(directory) is not str:
-            raise TypeError("directory must be an instance of str")
-
+        # TODO: check encoding for bytes->str conversion, is automatic
+        directory = str(os.fspath(directory))
         self.__workingdir = strip_path(directory)
-        for root, _dirs, files in walkdepth(
-                self.__workingdir, self.depth, self.whitelist, self.blacklist):
+        for root, _dirs, files in find(
+            self.__workingdir, self.depth, self.pattern,
+            self.whitelist, self.blacklist
+        ):
             self.add_files([os.sep.join((root, file)) for file in files])
 
     @property
@@ -202,10 +384,14 @@ class PyFileTracker:
         Raises:
             TypeError: blacklist is not None or an instance of FileSystemBWlist
         """
-        if blacklist is not None and not isinstance(blacklist,
-                                                    FileSystemBWlist):
+        if (
+            blacklist is not None and
+            not isinstance(blacklist, FileSystemBWlist)
+        ):
             raise TypeError(
-                "blacklist must be an instance of FileSystemBWlist or None")
+                "blacklist must be an instance of "
+                f"{FileSystemBWlist} or {None}"
+            )
 
         self.__blacklist = blacklist
 
@@ -224,10 +410,14 @@ class PyFileTracker:
         Raises:
             TypeError: whitelist is not None or an instance of FileSystemBWlist
         """
-        if whitelist is not None and not isinstance(whitelist,
-                                                    FileSystemBWlist):
-            raise TypeError("whitelist must be an instance of "
-                            "FileSystemBWlist or None")
+        if (
+            whitelist is not None and
+            not isinstance(whitelist, FileSystemBWlist)
+        ):
+            raise TypeError(
+                "whitelist must be an instance of "
+                f"{FileSystemBWlist} or {None}"
+            )
 
         self.__whitelist = whitelist
 
@@ -238,9 +428,9 @@ class PyFileTracker:
                 f"{self.whitelist})")
 
     def __getitem__(self, filename: str) -> PyFileData:
-        """Get file data for filename.
+        f"""Get file data for filename.
 
-        Filename should be as it was added. For example if a directory search
+        filename should be as it was added. For example if a directory search
         was performed, filename will be the path to the file starting from the
         project directory name. If filename was added to pyfiles directly, the
         name should be as it was added.
@@ -249,7 +439,7 @@ class PyFileTracker:
             filename: name of the file to look up.
 
         Returns:
-            An instance of PyFileData.
+            An instance of {PyFileData}.
 
         Raises:
             TypeError: filename is not a str type
@@ -261,7 +451,7 @@ class PyFileTracker:
         return self.__pyfiles[strip_path(filename)]
 
     def __setitem__(self, filename: str, data: PyFileData) -> None:
-        """Update a file in pyfiles with data.
+        f"""Update a file in pyfiles with data.
 
         Filename should be as it was added. For example if a directory search
         was performed, filename will be the path to the file starting from the
@@ -270,42 +460,51 @@ class PyFileTracker:
 
         Args:
             filename: path of the file to be updated.
-            data: an instance of PyFileData
+            data: an instance of {PyFileData}.
 
         Raises:
-            TypeError: filename is not a string, data is not PyFileData
+            TypeError: filename is not a string, data is not a {PyFileData} object.
         """
         if type(filename) is not str:
             raise TypeError("filename must be a string")
 
         if not isinstance(data, PyFileData):
-            raise TypeError("data must be an instance of PyFileData")
+            raise TypeError(f"data must be an instance of {PyFileData}")
 
         self.__pyfiles[strip_path(filename)] = data
 
-    def add_files(self, filenames: Iterable[str]) -> None:
-        """Update pyfiles with new files.
+    def add_files(
+        self,
+        filepaths: Iterable[str | bytes | os.PathLike],
+    ) -> None:
+        """Update pyfiles with files in filepaths.
 
-        If a file name already exists in pyfiles, it's data will be cleared.
-        Items in the iterable that are: not strings, valid file paths or don't
-        have a .py extension will be ignored.
+        Items in the iterable that cannot be verified as python scripts via
+        their extensions or shebangs will be silently ignored.
 
         Args:
-            filenames: an iterable of paths to files.
+            filepaths: an Iterable of paths to files.
 
         Raises:
-            TypeError: filenames is not an iterable.
+            TypeError: filepaths is not an Iterable.
         """
-        if not isinstance(filenames, Iterable) or type(filenames) is str:
-            raise TypeError("filenames must be an Iterable of strings")
+        if (
+            isinstance(filepaths, (str, bytes, os.PathLike)) or
+            not isinstance(filepaths, Iterable)
+        ):
+            raise TypeError("filepaths must be an Iterable of file paths")
 
-        for file in filenames:
-            if (
-                type(file) is str and
-                os.path.isfile(file) and
-                os.path.splitext(file)[1] == ".py"
-            ):
-                self.__pyfiles[strip_path(file)] = PyFileData()
+        temp: PyFileData
+        for file in filepaths:
+            try:
+                temp = PyFileData(file)
+            except (ValueError):
+                continue
+
+            if temp.filename:
+                self.__pyfiles.setdefault(
+                    strip_path(temp.filename), PyFileData()
+                )
 
     def clear(self) -> None:
         """Clear all items in pyfiles."""
@@ -327,7 +526,7 @@ class PyFileTracker:
             TypeError: filename is not a string, data is not PyFileData
         """
         if type(filename) is not str:
-            raise TypeError("filename must be a string")
+            raise TypeError(f"filename must be an instance of {str}")
 
         if not isinstance(data, PyFileData):
             raise TypeError("data must be an instance of PyFileData")
@@ -335,16 +534,17 @@ class PyFileTracker:
         self.__pyfiles[strip_path(filename)] = data
 
 
-def walkdepth(start: str, max_depth: int = -1,
-              whitelist: FileSystemBWlist | None = None,
-              blacklist: FileSystemBWlist | None = None
-              ) -> Iterator[tuple[str, list[str], list[str]]]:
+def find(
+    start: str, max_depth: int = -1, pattern: str | None = None,
+    whitelist: FileSystemBWlist | None = None,
+    blacklist: FileSystemBWlist | None = None,
+) -> Iterator[tuple[str, list[str], list[str]]]:
     """Genarate the directory tree of the given directory.
 
     This is a directory tree generator that behaves similar to os.walk()
-    except it can prune directories according to a depth, filter out files
-    and directories according to a blacklist or search only for specific
-    files and directories according to a whitelist.
+    except it can prune directories according to a depth, filter out
+    files/directories according to a blacklist or search only for specific
+    files/directories according to a whitelist.
 
     Args:
         start: a path to a directory.
@@ -352,6 +552,7 @@ def walkdepth(start: str, max_depth: int = -1,
             searching for files. A negative int means a full depth search,
             a positive int n means upto n levels deep, with 0 being the
             start directory.
+        pattern:
         whitelist: an optional List of file or directory basenames to
             search for. If a whitelist exists for files or directories the
             corresponding blacklist will be ignored.
@@ -369,6 +570,7 @@ def walkdepth(start: str, max_depth: int = -1,
 
     Raises:
         TypeError: start is not a string.
+            pattern is not a string.
             maxdepth is not an int.
             whitelist is not None or an instance of FileSystemBWlist.
             blacklist is not None or an instance of FileSystemBWlist.
@@ -379,21 +581,36 @@ def walkdepth(start: str, max_depth: int = -1,
     if type(max_depth) is not int:
         raise TypeError("max_depth must be an int")
 
-    if whitelist is not None and not isinstance(whitelist,
-                                                FileSystemBWlist):
-        raise TypeError("whitelist must be None or "
-                        "an instance of FileSystemBWlist")
+    if type(pattern) is not str:
+        raise TypeError("pattern must be a string")
 
-    if blacklist is not None and not isinstance(blacklist,
-                                                FileSystemBWlist):
-        raise TypeError("blacklist must be None or "
-                        "an instance of FileSystemBWlist")
+    if (
+        whitelist is not None and
+        not isinstance(whitelist, FileSystemBWlist)
+    ):
+        raise TypeError(
+            "whitelist must be None or an instance of FileSystemBWlist"
+        )
+
+    if (
+        blacklist is not None and
+        not isinstance(blacklist, FileSystemBWlist)
+    ):
+        raise TypeError(
+            "blacklist must be None or an instance of FileSystemBWlist"
+        )
 
     start = strip_path(start)
     base_depth: int = start.count(os.sep)
+    pat_object: re.Pattern | None = re.compile(pattern) if pattern else None
     for root, dirnames, filenames in os.walk(start):
+        matched_files: list[str] = []
+        matched_dirs: list[str] = []
         for dir, file in zip_longest(dirnames[:], filenames[:]):
             if dir:
+                if pat_object is not None and re.match(pat_object, dir):
+                    matched_dirs.append(dir)
+
                 rel_dirname: str = os.sep.join((root, dir))
                 if whitelist and whitelist.directories:
                     if not whitelist.in_dirs(rel_dirname):
@@ -402,6 +619,9 @@ def walkdepth(start: str, max_depth: int = -1,
                     dirnames.remove(dir)
 
             if file:
+                if pat_object is not None and re.match(pat_object, file):
+                    matched_files.append(file)
+
                 rel_filename: str = os.sep.join((root, file))
                 if whitelist and whitelist.files:
                     if not whitelist.in_files(rel_filename):
@@ -413,4 +633,6 @@ def walkdepth(start: str, max_depth: int = -1,
         if 0 <= max_depth <= current_depth:
             del dirnames[:]
 
+        dirnames.extend(matched_dirs)
+        filenames.extend(matched_files)
         yield root, dirnames, filenames
