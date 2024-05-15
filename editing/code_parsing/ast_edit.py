@@ -10,14 +10,16 @@ class TypeHintsRemover(ast.NodeTransformer):
 
     Attributes:
         __vip_bases: set of special Typing classes to skip.
+        __vip_decorators: set of special decorators to skip.
     """
 
     __vip_bases: set[str] = {"NamedTuple", "TypedDict"}
-    __vip_decorators: set[str] = {"dataclass"}
-    __vvip_decorators: set[str] = {
-        "no_type_check", "no_type_check_decorator", "type_check_only"}
+    __vip_decorators: set[str] = {
+        "no_type_check", "no_type_check_decorator",
+        "type_check_only", "dataclass",
+    }
 
-    def no_value_var_annotation(
+    def save_unassigned_var_annotation(
         self, node: Union[
             ast.Module | ast.AsyncFunctionDef | ast.FunctionDef |
             ast.AsyncWith | ast.Interactive | ast.ClassDef | ast.For |
@@ -25,7 +27,15 @@ class TypeHintsRemover(ast.NodeTransformer):
             ast.Try | ast.match_case
         ]
     ) -> ast.AST:
-        """"""
+        """Remove unassigned type annotations from nodes with body nodes.
+
+        Args:
+            node: a node with a body node.
+
+        Returns:
+            The modified node with it's original unassigned variable
+            annotations.
+        """
         ann_backup: list[tuple[int, ast.AnnAssign]] = []
         for pos, item in enumerate(node.body[:]):
             if isinstance(item, ast.AnnAssign) and item.value is None:
@@ -37,42 +47,6 @@ class TypeHintsRemover(ast.NodeTransformer):
             node.body.insert(pos, item)
 
         return node
-
-    def visit_arg(self, node: ast.arg) -> ast.AST:  # noqa: N802
-        """Remove function parameter annotations.
-
-        Args:
-            node: an arg node
-
-        Returns:
-            The modified node.
-        """
-        node.annotation = None
-        return self.generic_visit(node)
-
-    def visit_FunctionDef(self,  # noqa: N802
-                          node: ast.FunctionDef) -> ast.AST:
-        """Remove returns type annotation.
-
-        Args:
-            node: a FunctionDef node.
-
-        Returns:
-            The modified node
-        """
-        for d in node.decorator_list:
-            if (
-                (isinstance(d, ast.Name) and
-                 d.id in self.__vvip_decorators) or
-                (isinstance(d, ast.Constant) and
-                 d.value in self.__vvip_decorators) or
-                (isinstance(d, ast.Attribute) and
-                 d.attr in self.__vvip_decorators)
-            ):
-                return node
-
-        node.returns = None
-        return self.no_value_var_annotation(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST:  # noqa: N802
         """Protect assign annotations in certain class defition scenarios.
@@ -90,15 +64,14 @@ class TypeHintsRemover(ast.NodeTransformer):
         for d in node.decorator_list:
             if (
                 (isinstance(d, ast.Name) and
-                 d.id in self.__vvip_decorators) or
+                 d.id in self.__vip_decorators) or
                 (isinstance(d, ast.Constant) and
-                 d.value in self.__vvip_decorators) or
+                 d.value in self.__vip_decorators) or
                 (isinstance(d, ast.Attribute) and
-                 d.attr in self.__vvip_decorators)
+                 d.attr in self.__vip_decorators)
             ):
                 return node
 
-        node_backup: list[tuple[int, ast.AnnAssign]] = []
         for b in node.bases:
             if (
                 (isinstance(b, ast.Name) and
@@ -108,13 +81,20 @@ class TypeHintsRemover(ast.NodeTransformer):
                 (isinstance(b, ast.Attribute) and
                  b.attr in self.__vip_bases)
             ):
-                for pos, itm in enumerate(node.body[:]):
-                    if isinstance(itm, ast.AnnAssign):
-                        node_backup.append((pos, itm))
-                        node.body.remove(itm)
-                else:
-                    break
+                return node
 
+        return self.save_unassigned_var_annotation(node)
+
+    def visit_FunctionDef(self,  # noqa: N802
+                          node: ast.FunctionDef) -> ast.AST:
+        """Remove returns type annotation.
+
+        Args:
+            node: a FunctionDef node.
+
+        Returns:
+            The modified node
+        """
         for d in node.decorator_list:
             if (
                 (isinstance(d, ast.Name) and
@@ -124,25 +104,40 @@ class TypeHintsRemover(ast.NodeTransformer):
                 (isinstance(d, ast.Attribute) and
                  d.attr in self.__vip_decorators)
             ):
-                for pos, itm in enumerate(node.body[:]):
-                    if isinstance(itm, ast.AnnAssign):
-                        node_backup.append((pos, itm))
-                        node.body.remove(itm)
-                else:
-                    break
+                return node
 
-        self.no_value_var_annotation(node)
-        if node is not None:
-            for pos, itm in node_backup:
-                node.body.insert(pos, itm)
+        node.returns = None
+        return self.save_unassigned_var_annotation(node)
 
-        return node
+    def visit_AsyncFunctionDef(  # noqa: N802
+            self, node: ast.AsyncFunctionDef) -> ast.AST:
+        """Protect unassigned type annotations.
+
+        Args:
+            node: an AsyncFunctionDef node.
+
+        Returns:
+            The modified node.
+        """
+        for d in node.decorator_list:
+            if (
+                (isinstance(d, ast.Name) and
+                 d.id in self.__vip_decorators) or
+                (isinstance(d, ast.Constant) and
+                 d.value in self.__vip_decorators) or
+                (isinstance(d, ast.Attribute) and
+                 d.attr in self.__vip_decorators)
+            ):
+                return node
+
+        node.returns = None
+        return self.save_unassigned_var_annotation(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> ast.AST:  # noqa: N802
         """Remove type annotations from assign statements.
 
         Args:
-            node: a AnnAssign node.
+            node: an AnnAssign node.
 
         Returns:
             The modified node.
@@ -158,65 +153,140 @@ class TypeHintsRemover(ast.NodeTransformer):
 
         return self.generic_visit(ast.Assign(**assign_kwargs))
 
-    def visit_Module(self, node: ast.Module) -> ast.AST:
-        """"""
-        return self.no_value_var_annotation(node)
+    def visit_arg(self, node: ast.arg) -> ast.AST:  # noqa: N802
+        """Remove function parameter annotations.
 
-    def visit_Interactive(self, node: ast.Interactive) -> ast.AST:
-        """"""
-        return self.no_value_var_annotation(node)
+        Args:
+            node: an arg node
 
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> ast.AST:
-        """"""
-        for d in node.decorator_list:
-            if (
-                (isinstance(d, ast.Name) and
-                 d.id in self.__vvip_decorators) or
-                (isinstance(d, ast.Constant) and
-                 d.value in self.__vvip_decorators) or
-                (isinstance(d, ast.Attribute) and
-                 d.attr in self.__vvip_decorators)
-            ):
-                return node
+        Returns:
+            The modified node.
+        """
+        node.annotation = None
+        return self.generic_visit(node)
 
-        node.returns = None
-        return self.no_value_var_annotation(node)
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> ast.AST:  # noqa: N802
+        """Protect unassigned type annotations.
 
-    def visit_For(self, node: ast.For) -> ast.AST:
-        """"""
-        return self.no_value_var_annotation(node)
+        Args:
+            node: an AsyncFor node.
 
-    def visit_AsyncFor(self, node: ast.AsyncFor) -> ast.AST:
-        """"""
-        return self.no_value_var_annotation(node)
+        Returns:
+            The modified node.
+        """
+        return self.save_unassigned_var_annotation(node)
 
-    def visit_While(self, node: ast.While) -> ast.AST:
-        """"""
-        return self.no_value_var_annotation(node)
+    def visit_AsyncWith(self, node: ast.AsyncWith) -> ast.AST:  # noqa: N802
+        """Protect unassigned type annotations.
 
-    def visit_With(self, node: ast.With) -> ast.AST:
-        """"""
-        return self.no_value_var_annotation(node)
+        Args:
+            node: an AsyncWith node.
 
-    def visit_AsyncWith(self, node: ast.AsyncWith) -> ast.AST:
-        """"""
-        return self.no_value_var_annotation(node)
+        Returns:
+            The modified node.
+        """
+        return self.save_unassigned_var_annotation(node)
 
-    def visit_If(self, node: ast.If) -> ast.AST:
-        """"""
-        return self.no_value_var_annotation(node)
+    def visit_ExceptHandler(  # noqa: N802
+            self, node: ast.ExceptHandler) -> ast.AST:
+        """Protect unassigned type annotations.
 
-    def visit_Try(self, node: ast.Try) -> ast.AST:
-        """"""
-        return self.no_value_var_annotation(node)
+        Args:
+            node: an EsceptHandler node.
 
-    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> ast.AST:
-        """"""
-        return self.no_value_var_annotation(node)
+        Returns:
+            The modified node.
+        """
+        return self.save_unassigned_var_annotation(node)
+
+    def visit_For(self, node: ast.For) -> ast.AST:  # noqa: N802
+        """Protect unassigned type annotations.
+
+        Args:
+            node: a For node.
+
+        Returns:
+            The modified node.
+        """
+        return self.save_unassigned_var_annotation(node)
+
+    def visit_If(self, node: ast.If) -> ast.AST:  # noqa: N802
+        """Protect unassigned type annotations.
+
+        Args:
+            node: an If node.
+
+        Returns:
+            The modified node.
+        """
+        return self.save_unassigned_var_annotation(node)
+
+    def visit_Interactive(  # noqa: N802
+            self, node: ast.Interactive) -> ast.AST:
+        """Protect unassigned type annotations.
+
+        Args:
+            node: an Interactive node.
+
+        Returns:
+            The modified node.
+        """
+        return self.save_unassigned_var_annotation(node)
 
     def visit_match_case(self, node: ast.match_case) -> ast.AST:
-        """"""
-        return self.no_value_var_annotation(node)
+        """Protect unassigned type annotations.
+
+        Args:
+            node: a match_case node.
+
+        Returns:
+            The modified node.
+        """
+        return self.save_unassigned_var_annotation(node)
+
+    def visit_Module(self, node: ast.Module) -> ast.AST:  # noqa: N802
+        """Protect unassigned type annotations.
+
+        Args:
+            node: a Module node.
+
+        Returns:
+            The modified node.
+        """
+        return self.save_unassigned_var_annotation(node)
+
+    def visit_Try(self, node: ast.Try) -> ast.AST:  # noqa: N802
+        """Protect unassigned type annotations.
+
+        Args:
+            node: a Try node.
+
+        Returns:
+            The modified node.
+        """
+        return self.save_unassigned_var_annotation(node)
+
+    def visit_While(self, node: ast.While) -> ast.AST:  # noqa: N802
+        """Protect unassigned type annotations.
+
+        Args:
+            node: a While node.
+
+        Returns:
+            The modified node.
+        """
+        return self.save_unassigned_var_annotation(node)
+
+    def visit_With(self, node: ast.With) -> ast.AST:  # noqa: N802
+        """Protect unassigned type annotations.
+
+        Args:
+            node: a With node.
+
+        Returns:
+            The modified node.
+        """
+        return self.save_unassigned_var_annotation(node)
 
 
 if __name__ == "__main__":

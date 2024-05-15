@@ -42,12 +42,12 @@ def remove_annotations_ast(
 
     try:
         with (
-            open(filename, "rb") as filename,
+            open(filename, "rb") as file,
             NamedTemporaryFile(
                 "wb", prefix=f"{base}.bak.", delete=False
             ) as tmpf
         ):
-            data.tree = ast.parse(filename.read(), filename)
+            data.tree = ast.parse(file.read(), file)
             if isinstance(file_progress, Progress):
                 file_progress.update(
                     file_task_id, advance=1,
@@ -71,20 +71,20 @@ def remove_annotations_ast(
                 file_task_id, advance=1, step="Formatting script..."
             )
 
-        autopep8.fix_file(tmpf.filename.name)
+        autopep8.fix_file(tmpf.file.name)
         if isinstance(file_progress, Progress):
             file_progress.update(
-                file_task_id, advance=1, step="Replacing filename..."
+                file_task_id, advance=1, step="Replacing file..."
             )
 
-        shutil.copystat(filename, tmpf.filename.name)
+        shutil.copystat(filename, tmpf.file.name)
     except Exception as err:
-        if tmpf is not None and os.path.exists(tmpf.filename.name):
-            os.remove(tmpf.filename.name)
+        if tmpf is not None and os.path.exists(tmpf.file.name):
+            os.remove(tmpf.file.name)
 
         raise err
 
-    shutil.move(tmpf.filename.name, filename.name)
+    shutil.move(tmpf.file.name, file.name)
     if isinstance(file_progress, Progress):
         file_progress.update(
             file_task_id, advance=1, visible=False,
