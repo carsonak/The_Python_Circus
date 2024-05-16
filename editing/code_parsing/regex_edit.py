@@ -4,12 +4,12 @@
 import regex
 
 try:
-    from editing.file_handlers.pyfile_tracker import PyFileTracker
+    from editing.file_handlers.pyfile import PyFileTracker
 except ModuleNotFoundError:
     from sys import path
     from os.path import dirname, realpath
     path.append(dirname(dirname(dirname(realpath(__file__)))))
-    from editing.file_handlers.pyfile_tracker import PyFileTracker
+    from editing.file_handlers.pyfile import PyFileTracker
     del path, dirname, realpath
 
 
@@ -132,7 +132,7 @@ class PyRegexEdit:
 #         return
 
 #     self.__pattern_object = self.compile(regex_str, flags)
-#     for filename in self.files.py_files:
+#     for filename in self.files.pyfiles:
 #         with open(filename, "r", encoding="utf-8") as file:
 #             contents: str = file.read()
 
@@ -172,14 +172,14 @@ class PyRegexEdit:
         self.flags = flags
         self.__pattern_object = self.compile(regex_str, self.flags)
         file_matches: dict[str, dict[str, list[str]]] = {}
-        for filename in self.files.py_files:
+        for filename in self.files.pyfiles:
             with open(filename, "r", encoding="utf-8") as file:
-                self.files[filename].contents = file.read()
+                self.files[filename].content = file.read()
 
             file_matches[filename] = {name: [] for name in
                                       self.__pattern_object.groupindex.keys()}
             for match_obj in self.__pattern_object.finditer(
-                    self.files[filename].contents, overlapped=True,
+                    self.files[filename].content, overlapped=True,
                     timeout=file_time):
                 for group_name, items in match_obj.capturesdict().items():
                     file_matches[filename][group_name] += items

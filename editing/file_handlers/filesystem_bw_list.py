@@ -51,11 +51,7 @@ class FileSystemBWlist:
         if isinstance(files, str) or not isinstance(files, Iterable):
             raise TypeError("files only accepts and iterable of strings.")
 
-        tmp: set[str] = set()
-        for f in files:
-            if isinstance(f, str):
-                tmp.add(strip_path(f))
-
+        tmp: set[str] = {strip_path(f) for f in files if isinstance(f, str)}
         self.__fileList: BlackWhitelist = BlackWhitelist(tmp)
 
     @property

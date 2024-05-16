@@ -2,7 +2,6 @@
 """Module for string."""
 
 import os
-import typing
 
 
 def strip_path(path: str) -> str:
@@ -27,23 +26,9 @@ def strip_path(path: str) -> str:
     return path
 
 
-@typing.overload
-def trimstr(string: str, start: int, /, *, mark: str = "*") -> str:
-    """Variant."""
-    pass
-
-
-@typing.overload
-def trimstr(
-    string: str, start: int, stop: int | None, /, *, mark: str = "*"
-) -> str:
-    """Variant."""
-    pass
-
-
 def trimstr(
         string: str, start: int, stop: int | None = None,
-        fill: str = "", mark: str = "*"
+        fill: str = "", mark: str = "*",
 ) -> str:
     """Trim a string with a slice(start, stop), add fill where necessary.
 

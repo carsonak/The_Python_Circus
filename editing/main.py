@@ -22,7 +22,7 @@ except ModuleNotFoundError:
     del dirname, realpath
 
 from editing.remove_annotations import remove_annotations_ast
-from editing.file_handlers.pyfile_tracker import PyFileTracker
+from editing.file_handlers.pyfile import PyFileTracker
 
 
 class FancyProgressBars():

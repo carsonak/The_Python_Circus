@@ -2,8 +2,7 @@
 """Module for python_files_tracker."""
 
 import ast
-from collections.abc import Iterable, Iterator
-from itertools import zip_longest
+from collections.abc import Iterable
 import os
 import re
 from sys import stderr
@@ -19,6 +18,7 @@ except ModuleNotFoundError:
     from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
     del path, realpath, dirname
 
+from editing.file_handlers.walk_tree import walk_tree
 from editing.text.string import strip_path
 
 
@@ -27,13 +27,6 @@ class FileType(NamedTuple):
     filename: str
     is_file: bool = False
     file_type: str | None = None
-
-    def __repr__(self) -> str:
-        return (
-            f"FileType(filename={self.filename}, "
-            f"is_file={self.is_file}, "
-            f"is_pyscript={self.file_type})"
-        )
 
 
 class FileBase(TypedDict):
@@ -113,7 +106,7 @@ class PyFileData:
     ):
         """Initialise a container for Python scipt data."""
         self.__file: File = File(file="")
-        self.filename = filepath
+        self.filename = filepath  # type: ignore
         self.content = content
         self.tree = tree
 
@@ -150,8 +143,7 @@ class PyFileData:
 
         if (
             file_type is None or
-            file_type != ".py" or
-            not file_type.startswith("python")
+            (file_type != ".py" and not file_type.startswith("python"))
         ):
             raise ValueError(
                 "Cannot ascertain if file is a python script. "
@@ -215,10 +207,10 @@ class PyFileData:
         """Return a string with details of this instance."""
         return (
             f"{self.__class__.__name__}("
-            f"{self.filename}, "
-            f"<{type(self.content).__name__} object at "
+            f"filepath={self.filename}, "
+            f"content=<{type(self.content).__name__} object at "
             f"{hex(id(self.content))}>, "
-            f"{self.tree})"
+            f"tree={self.tree})"
         )
 
 
@@ -251,14 +243,14 @@ class PyFileTracker:
             whitelist: a list of file/directory basenames to search for in a
                 directory.
         """
-        self.pyfiles = pyfiles
+        self.pyfiles = pyfiles  # type: ignore
         self._pfmap: MappingProxyType[str, PyFileData] = MappingProxyType(
             self.__pyfiles)
         self.depth = max_descent
         self.blacklist = blacklist
         self.whitelist = whitelist
         self.pattern = pattern
-        self.directory = directory
+        self.directory = directory  # type: ignore
 
     @property
     def pyfiles(self) -> MappingProxyType[str, PyFileData]:
@@ -336,12 +328,12 @@ class PyFileTracker:
         Raises:
             Any errors raised by os.fspath(directory).
         """
-        # TODO: check encoding for bytes->str conversion, is automatic
+        # TODO: check that encoding for bytes->str conversion is automatic
         directory = str(os.fspath(directory))
         self.__workingdir = strip_path(directory)
-        for root, _dirs, files in find(
-            self.__workingdir, self.depth, self.pattern,
-            self.whitelist, self.blacklist
+        for root, _dirs, files in walk_tree(
+            self.__workingdir, self.pattern, self.whitelist,
+            self.blacklist, self.depth,
         ):
             self.add_files([os.sep.join((root, file)) for file in files])
 
@@ -532,107 +524,3 @@ class PyFileTracker:
             raise TypeError("data must be an instance of PyFileData")
 
         self.__pyfiles[strip_path(filename)] = data
-
-
-def find(
-    start: str, max_depth: int = -1, pattern: str | None = None,
-    whitelist: FileSystemBWlist | None = None,
-    blacklist: FileSystemBWlist | None = None,
-) -> Iterator[tuple[str, list[str], list[str]]]:
-    """Genarate the directory tree of the given directory.
-
-    This is a directory tree generator that behaves similar to os.walk()
-    except it can prune directories according to a depth, filter out
-    files/directories according to a blacklist or search only for specific
-    files/directories according to a whitelist.
-
-    Args:
-        start: a path to a directory.
-        max_depth: an int indicating how many levels to descend while
-            searching for files. A negative int means a full depth search,
-            a positive int n means upto n levels deep, with 0 being the
-            start directory.
-        pattern:
-        whitelist: an optional List of file or directory basenames to
-            search for. If a whitelist exists for files or directories the
-            corresponding blacklist will be ignored.
-        blacklist: an optional List of file or director basenames to be
-            excluded from the search. If a whitelist exists for files or
-            directories the corresponding blacklist will be ignored.
-
-    Yields:
-        A tuple of three items: dirpath, dirnames, filenames.
-        `dirpath` is the path to the directory. `dirnames` is a list of the
-        names of the subdirectories in dirpath (including symlinks to
-        directories, and excluding '.' and '..'). `filenames` is a list of
-        the names of the non-directory files in dirpath.
-        The names in the lists are just names, with no path components.
-
-    Raises:
-        TypeError: start is not a string.
-            pattern is not a string.
-            maxdepth is not an int.
-            whitelist is not None or an instance of FileSystemBWlist.
-            blacklist is not None or an instance of FileSystemBWlist.
-    """
-    if type(start) is not str:
-        raise TypeError("start must be a string")
-
-    if type(max_depth) is not int:
-        raise TypeError("max_depth must be an int")
-
-    if type(pattern) is not str:
-        raise TypeError("pattern must be a string")
-
-    if (
-        whitelist is not None and
-        not isinstance(whitelist, FileSystemBWlist)
-    ):
-        raise TypeError(
-            "whitelist must be None or an instance of FileSystemBWlist"
-        )
-
-    if (
-        blacklist is not None and
-        not isinstance(blacklist, FileSystemBWlist)
-    ):
-        raise TypeError(
-            "blacklist must be None or an instance of FileSystemBWlist"
-        )
-
-    start = strip_path(start)
-    base_depth: int = start.count(os.sep)
-    pat_object: re.Pattern | None = re.compile(pattern) if pattern else None
-    for root, dirnames, filenames in os.walk(start):
-        matched_files: list[str] = []
-        matched_dirs: list[str] = []
-        for dir, file in zip_longest(dirnames[:], filenames[:]):
-            if dir:
-                if pat_object is not None and re.match(pat_object, dir):
-                    matched_dirs.append(dir)
-
-                rel_dirname: str = os.sep.join((root, dir))
-                if whitelist and whitelist.directories:
-                    if not whitelist.in_dirs(rel_dirname):
-                        dirnames.remove(dir)
-                elif blacklist and blacklist.in_dirs(rel_dirname):
-                    dirnames.remove(dir)
-
-            if file:
-                if pat_object is not None and re.match(pat_object, file):
-                    matched_files.append(file)
-
-                rel_filename: str = os.sep.join((root, file))
-                if whitelist and whitelist.files:
-                    if not whitelist.in_files(rel_filename):
-                        filenames.remove(file)
-                elif blacklist and blacklist.in_files(rel_filename):
-                    filenames.remove(file)
-
-        current_depth: int = root.count(os.sep) - base_depth
-        if 0 <= max_depth <= current_depth:
-            del dirnames[:]
-
-        dirnames.extend(matched_dirs)
-        filenames.extend(matched_files)
-        yield root, dirnames, filenames

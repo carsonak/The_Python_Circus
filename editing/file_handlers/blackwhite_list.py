@@ -3,6 +3,7 @@
 
 
 from collections.abc import Hashable, Iterable, Iterator
+from typing import Union
 
 
 class BlackWhitelist:
@@ -41,61 +42,84 @@ class BlackWhitelist:
         """Return an official string representation of this instance."""
         return f"{self.__class__.__name__}({self.__mut_items})"
 
-    def __add__(self, other: "BlackWhitelist") -> "BlackWhitelist":
+    def __add__(
+        self, other: Union[set, frozenset, "BlackWhitelist"]
+    ) -> "BlackWhitelist":
         """Return a union of self and other."""
         if isinstance(other, BlackWhitelist):
-            t = BlackWhitelist(self.__mut_items.union(other.itemslist))
-            return t
+            return BlackWhitelist(self.__mut_items.union(other.itemslist))
+        elif isinstance(other, (set, frozenset)):
+            return BlackWhitelist(self.__mut_items.union(other))
         else:
             return NotImplemented
 
-    def __iadd__(self, other: "BlackWhitelist") -> None:
+    def __iadd__(self, other: Union[set, frozenset, "BlackWhitelist"]) -> None:
         """Update self with a union of self and other."""
         if isinstance(other, BlackWhitelist):
             self.__mut_items.update(other.itemslist)
+        elif isinstance(other, (set, frozenset)):
+            self.__mut_items.update(other)
         else:
             return NotImplemented
 
-    def __sub__(self, other: "BlackWhitelist") -> "BlackWhitelist":
+    def __sub__(
+        self, other: Union[set, frozenset, "BlackWhitelist"]
+    ) -> "BlackWhitelist":
         """Return a difference of self and other."""
         if isinstance(other, BlackWhitelist):
             return BlackWhitelist(self.__mut_items.difference(other.itemslist))
+        elif isinstance(other, (set, frozenset)):
+            return BlackWhitelist(self.__mut_items.difference(other))
         else:
             return NotImplemented
 
-    def __isub__(self, other: "BlackWhitelist") -> None:
+    def __isub__(self, other: Union[set, frozenset, "BlackWhitelist"]) -> None:
         """Update self with the difference of self and other."""
         if isinstance(other, BlackWhitelist):
             self.__mut_items.difference_update(other.itemslist)
+        elif isinstance(other, (set, frozenset)):
+            self.__mut_items.difference_update(other)
         else:
             return NotImplemented
 
-    def __and__(self, other: "BlackWhitelist") -> "BlackWhitelist":
+    def __and__(
+        self, other: Union[set, frozenset, "BlackWhitelist"]
+    ) -> "BlackWhitelist":
         """Return an intersection of self and other."""
         if isinstance(other, BlackWhitelist):
             return BlackWhitelist(
                 self.__mut_items.intersection(other.itemslist))
+        elif isinstance(other, (set, frozenset)):
+            return BlackWhitelist(self.__mut_items.intersection(other))
         else:
             return NotImplemented
 
-    def __iand__(self, other: "BlackWhitelist") -> None:
+    def __iand__(self, other: Union[set, frozenset, "BlackWhitelist"]) -> None:
         """Update self with an intersection of self and other."""
         if isinstance(other, BlackWhitelist):
             self.__mut_items.intersection_update(other.itemslist)
+        elif isinstance(other, (set, frozenset)):
+            self.__mut_items.intersection_update(other)
         else:
             return NotImplemented
 
-    def __or__(self, other: "BlackWhitelist") -> "BlackWhitelist":
+    def __or__(
+        self, other: Union[set, frozenset, "BlackWhitelist"]
+    ) -> "BlackWhitelist":
         """Return a union of self and other."""
         if isinstance(other, BlackWhitelist):
             return BlackWhitelist(self.__mut_items.union(other.itemslist))
+        elif isinstance(other, (set, frozenset)):
+            return BlackWhitelist(self.__mut_items.union(other))
         else:
             return NotImplemented
 
-    def __ior__(self, other: "BlackWhitelist") -> None:
+    def __ior__(self, other: Union[set, frozenset, "BlackWhitelist"]) -> None:
         """Update self with a union of self and other."""
         if isinstance(other, BlackWhitelist):
             self.__mut_items.update(other.itemslist)
+        elif isinstance(other, (set, frozenset)):
+            self.__mut_items.update(other)
         else:
             return NotImplemented
 
@@ -103,15 +127,28 @@ class BlackWhitelist:
         """Return self == other."""
         if isinstance(other, BlackWhitelist):
             return self.__mut_items == other.itemslist
+        elif isinstance(other, (set, frozenset)):
+            return self.__mut_items == other
         else:
-            return NotImplemented
+            return self == other
 
     def __lt__(self, other: object) -> bool:
         """Return self < other."""
         if isinstance(other, BlackWhitelist):
             return self.__mut_items < other.itemslist
+        elif isinstance(other, (set, frozenset)):
+            return self.__mut_items < other
         else:
-            return NotImplemented
+            return self < other
+
+    def __le__(self, other: object) -> bool:
+        """Return self <= other."""
+        if isinstance(other, BlackWhitelist):
+            return self.__mut_items <= other.itemslist
+        elif isinstance(other, (set, frozenset)):
+            return self.__mut_items <= other
+        else:
+            return self <= other
 
     def __len__(self) -> int:
         """Return number of items in the List."""
