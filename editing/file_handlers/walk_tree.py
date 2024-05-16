@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+"""Module for walk_tree."""
 from collections.abc import Iterator
 from itertools import zip_longest
 import os
@@ -86,9 +88,10 @@ def walk_tree(
                 if pat_obj is not None and re.match(pat_obj, rel_dirname):
                     matched_dirs.add(dir)
 
-                if whitelist and whitelist.in_dirs(rel_dirname):
-                    matched_dirs.add(dir)
-                elif blacklist and not blacklist.in_dirs(rel_dirname):
+                if (
+                    (whitelist and whitelist.in_dirs(rel_dirname)) or
+                    (blacklist and not blacklist.in_dirs(rel_dirname))
+                ):
                     matched_dirs.add(dir)
 
             if file is not None:
@@ -96,9 +99,10 @@ def walk_tree(
                 if pat_obj is not None and re.match(pat_obj, rel_filename):
                     matched_files.add(file)
 
-                if whitelist and not whitelist.in_files(rel_filename):
-                    matched_files.add(file)
-                elif blacklist and blacklist.in_files(rel_filename):
+                if (
+                    (whitelist and not whitelist.in_files(rel_filename)) or
+                    (blacklist and blacklist.in_files(rel_filename))
+                ):
                     matched_files.add(file)
 
         dirnames = list(matched_dirs)

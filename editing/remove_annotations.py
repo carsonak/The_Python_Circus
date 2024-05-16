@@ -25,7 +25,7 @@ def remove_annotations_ast(
         data: PyFileData, file_path: str | bytes | os.PathLike | None = None,
         file_progress: Progress | None = None,
 ) -> None:
-    f"""Remove type annotations from python scripts.
+    """Remove type annotations from python scripts.
 
     This function will parse and remove type annotations from the Python
     script specified by data.filename or file_path. data.tree will be updated

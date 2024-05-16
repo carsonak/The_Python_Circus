@@ -3,6 +3,7 @@
 
 import ast
 from collections.abc import Iterable
+from contextlib import suppress
 import os
 import re
 from sys import stderr
@@ -62,11 +63,8 @@ def get_filetype(file: str | bytes | os.PathLike) -> FileType:
     file_type: str = os.path.splitext(filename)[1]
     first_line: str = ""
     if not file_type:
-        try:
-            with open(filename, "r") as f:
-                first_line = f.readline().strip()
-        except PermissionError:
-            pass
+        with suppress(PermissionError), open(filename, "r") as f:
+            first_line = f.readline().strip()
 
     match_obj: re.Match | None = re.match(
         r"""
@@ -83,7 +81,7 @@ def get_filetype(file: str | bytes | os.PathLike) -> FileType:
             r"""
             ^\#!
             (?P<dir_path> \/+ (?: (?<!-) [\w.-]+ \/+ )* )
-            env\ +#
+            env\ +
             (?P<opts> (?:-[\w-]+=?)\ * )*
             (?P<exe> (?<!-) [\w.-]+ )
             """,
@@ -159,14 +157,14 @@ class PyFileData:
 
     @content.setter
     def content(self, val: str | bytes) -> None:
-        f"""Initialise content.
+        """Initialise content.
 
         Args:
             val: a str or bytes object representing the content of
                 a python script.
 
         Raises:
-            TypeError: val is not an instance of {str} or {bytes}.
+            TypeError: val is not an instance of str or bytes.
         """
         if isinstance(val, str):
             self.__file["text"] = val
@@ -184,13 +182,13 @@ class PyFileData:
 
     @tree.setter
     def tree(self, val: ast.AST | None) -> None:
-        f"""Initialise tree.
+        """Initialise tree.
 
         Args:
             val: the abstract syntax tree of a Python script or None.
 
         Raises:
-            TypeError: val is not an instance of {ast.AST} or {None}.
+            TypeError: val is not an instance of ast.AST or sNone.
         """
         self.__tree: ast.AST | None = None
         if val is None:
@@ -229,11 +227,11 @@ class PyFileTracker:
         whitelist: FileSystemBWlist | None = None,
         pattern: str | None = None,
     ):
-        f"""Initialise instance attributes for tracking files.
+        """Initialise instance attributes for tracking files.
 
         Args:
-            pyfiles: a {os.PathLike} object or an Iterable of file paths.
-            directory: a pathname to a python project directory.
+            pyfiles: a path to a file or an Iterable of file paths.
+            directory: a path to a python project directory.
             max_descent: an int indicating how many levels to descend while
                 searching for files. A negative int means a full depth search,
                 a positive number n means upto n levels deep, with 0 being the
@@ -242,6 +240,7 @@ class PyFileTracker:
                 directory search.
             whitelist: a list of file/directory basenames to search for in a
                 directory.
+            pattern: a regex pattern to be used for searching directories.
         """
         self.pyfiles = pyfiles  # type: ignore
         self._pfmap: MappingProxyType[str, PyFileData] = MappingProxyType(
@@ -265,9 +264,9 @@ class PyFileTracker:
                 str | bytes | os.PathLike
             ],
     ) -> None:
-        f"""Initialise pyfiles.
+        """Initialise pyfiles.
 
-        Initialises a new mapping of filenames to instances of {PyFileData}.
+        Initialises a new mapping of filenames to instances of PyFileData.
         If an iterable is provided, any objects in it that raise a TypeError
         when called with os.fspath(), or that cannot be validated as Python
         scripts via their extensions or shebangs will be ignored.
@@ -278,8 +277,8 @@ class PyFileTracker:
             pyfiles: a path to a file or an Iterable of file paths.
 
         Raises:
-            TypeError: pyfiles is neither an instance of {os.PathLike},
-                {str} or {bytes} nor an iterable of the same.
+            TypeError: pyfiles is neither an instance of os.PathLike,
+                str or bytes nor an iterable of the same.
         """
         temp: PyFileData
         if isinstance(pyfiles, (str, bytes, os.PathLike)):
@@ -328,7 +327,7 @@ class PyFileTracker:
         Raises:
             Any errors raised by os.fspath(directory).
         """
-        # TODO: check that encoding for bytes->str conversion is automatic
+        # TODO(Andrew) check that encoding for bytes->str is utf-8
         directory = str(os.fspath(directory))
         self.__workingdir = strip_path(directory)
         for root, _dirs, files in walk_tree(
@@ -420,7 +419,7 @@ class PyFileTracker:
                 f"{self.whitelist})")
 
     def __getitem__(self, filename: str) -> PyFileData:
-        f"""Get file data for filename.
+        """Get file data for filename.
 
         filename should be as it was added. For example if a directory search
         was performed, filename will be the path to the file starting from the
@@ -431,7 +430,7 @@ class PyFileTracker:
             filename: name of the file to look up.
 
         Returns:
-            An instance of {PyFileData}.
+            An instance of PyFileData.
 
         Raises:
             TypeError: filename is not a str type
@@ -443,7 +442,7 @@ class PyFileTracker:
         return self.__pyfiles[strip_path(filename)]
 
     def __setitem__(self, filename: str, data: PyFileData) -> None:
-        f"""Update a file in pyfiles with data.
+        """Update a file in pyfiles with data.
 
         Filename should be as it was added. For example if a directory search
         was performed, filename will be the path to the file starting from the
@@ -452,10 +451,10 @@ class PyFileTracker:
 
         Args:
             filename: path of the file to be updated.
-            data: an instance of {PyFileData}.
+            data: an instance of PyFileData.
 
         Raises:
-            TypeError: filename is not a string, data is not a {PyFileData} object.
+            TypeError: filename is not a str, data is not a PyFileData object.
         """
         if type(filename) is not str:
             raise TypeError("filename must be a string")

@@ -48,7 +48,7 @@ class TypeHintsRemover(ast.NodeTransformer):
 
         return node
 
-    def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST:  # noqa: N802
+    def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST:  # noqa: N802,B906
         """Protect assign annotations in certain class defition scenarios.
 
         If node inherits from certain typing classes or has certain decorators
@@ -85,7 +85,7 @@ class TypeHintsRemover(ast.NodeTransformer):
 
         return self.save_unassigned_var_annotation(node)
 
-    def visit_FunctionDef(self,  # noqa: N802
+    def visit_FunctionDef(self,  # noqa: N802,B906
                           node: ast.FunctionDef) -> ast.AST:
         """Remove returns type annotation.
 
@@ -109,7 +109,7 @@ class TypeHintsRemover(ast.NodeTransformer):
         node.returns = None
         return self.save_unassigned_var_annotation(node)
 
-    def visit_AsyncFunctionDef(  # noqa: N802
+    def visit_AsyncFunctionDef(  # noqa: N802,B906
             self, node: ast.AsyncFunctionDef) -> ast.AST:
         """Protect unassigned type annotations.
 
@@ -133,7 +133,8 @@ class TypeHintsRemover(ast.NodeTransformer):
         node.returns = None
         return self.save_unassigned_var_annotation(node)
 
-    def visit_AnnAssign(self, node: ast.AnnAssign) -> ast.AST:  # noqa: N802
+    def visit_AnnAssign(self, node: ast.AnnAssign,  # noqa: N802,B906
+                        ) -> ast.AST:
         """Remove type annotations from assign statements.
 
         Args:
@@ -153,7 +154,7 @@ class TypeHintsRemover(ast.NodeTransformer):
 
         return self.generic_visit(ast.Assign(**assign_kwargs))
 
-    def visit_arg(self, node: ast.arg) -> ast.AST:  # noqa: N802
+    def visit_arg(self, node: ast.arg) -> ast.AST:  # noqa: N802,B906
         """Remove function parameter annotations.
 
         Args:
@@ -165,7 +166,7 @@ class TypeHintsRemover(ast.NodeTransformer):
         node.annotation = None
         return self.generic_visit(node)
 
-    def visit_AsyncFor(self, node: ast.AsyncFor) -> ast.AST:  # noqa: N802
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> ast.AST:  # noqa: N802,B906
         """Protect unassigned type annotations.
 
         Args:
@@ -176,7 +177,8 @@ class TypeHintsRemover(ast.NodeTransformer):
         """
         return self.save_unassigned_var_annotation(node)
 
-    def visit_AsyncWith(self, node: ast.AsyncWith) -> ast.AST:  # noqa: N802
+    def visit_AsyncWith(self, node: ast.AsyncWith,  # noqa: N802,B906
+                        ) -> ast.AST:
         """Protect unassigned type annotations.
 
         Args:
@@ -187,7 +189,7 @@ class TypeHintsRemover(ast.NodeTransformer):
         """
         return self.save_unassigned_var_annotation(node)
 
-    def visit_ExceptHandler(  # noqa: N802
+    def visit_ExceptHandler(  # noqa: N802,B906
             self, node: ast.ExceptHandler) -> ast.AST:
         """Protect unassigned type annotations.
 
@@ -199,7 +201,7 @@ class TypeHintsRemover(ast.NodeTransformer):
         """
         return self.save_unassigned_var_annotation(node)
 
-    def visit_For(self, node: ast.For) -> ast.AST:  # noqa: N802
+    def visit_For(self, node: ast.For) -> ast.AST:  # noqa: N802,B906
         """Protect unassigned type annotations.
 
         Args:
@@ -210,7 +212,7 @@ class TypeHintsRemover(ast.NodeTransformer):
         """
         return self.save_unassigned_var_annotation(node)
 
-    def visit_If(self, node: ast.If) -> ast.AST:  # noqa: N802
+    def visit_If(self, node: ast.If) -> ast.AST:  # noqa: N802,B906
         """Protect unassigned type annotations.
 
         Args:
@@ -221,7 +223,7 @@ class TypeHintsRemover(ast.NodeTransformer):
         """
         return self.save_unassigned_var_annotation(node)
 
-    def visit_Interactive(  # noqa: N802
+    def visit_Interactive(  # noqa: N802,B906
             self, node: ast.Interactive) -> ast.AST:
         """Protect unassigned type annotations.
 
@@ -233,7 +235,7 @@ class TypeHintsRemover(ast.NodeTransformer):
         """
         return self.save_unassigned_var_annotation(node)
 
-    def visit_match_case(self, node: ast.match_case) -> ast.AST:
+    def visit_match_case(self, node: ast.match_case) -> ast.AST:  # noqa: B906
         """Protect unassigned type annotations.
 
         Args:
@@ -244,7 +246,7 @@ class TypeHintsRemover(ast.NodeTransformer):
         """
         return self.save_unassigned_var_annotation(node)
 
-    def visit_Module(self, node: ast.Module) -> ast.AST:  # noqa: N802
+    def visit_Module(self, node: ast.Module) -> ast.AST:  # noqa: N802,B906
         """Protect unassigned type annotations.
 
         Args:
@@ -255,7 +257,7 @@ class TypeHintsRemover(ast.NodeTransformer):
         """
         return self.save_unassigned_var_annotation(node)
 
-    def visit_Try(self, node: ast.Try) -> ast.AST:  # noqa: N802
+    def visit_Try(self, node: ast.Try) -> ast.AST:  # noqa: N802,B906
         """Protect unassigned type annotations.
 
         Args:
@@ -266,7 +268,7 @@ class TypeHintsRemover(ast.NodeTransformer):
         """
         return self.save_unassigned_var_annotation(node)
 
-    def visit_While(self, node: ast.While) -> ast.AST:  # noqa: N802
+    def visit_While(self, node: ast.While) -> ast.AST:  # noqa: N802,B906
         """Protect unassigned type annotations.
 
         Args:
@@ -277,7 +279,7 @@ class TypeHintsRemover(ast.NodeTransformer):
         """
         return self.save_unassigned_var_annotation(node)
 
-    def visit_With(self, node: ast.With) -> ast.AST:  # noqa: N802
+    def visit_With(self, node: ast.With) -> ast.AST:  # noqa: N802,B906
         """Protect unassigned type annotations.
 
         Args:

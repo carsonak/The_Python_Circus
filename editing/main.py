@@ -14,14 +14,14 @@ from rich.progress import (
 )
 
 try:
-    from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
+    from editing.remove_annotations import remove_annotations_ast
 except ModuleNotFoundError:
     from os.path import dirname, realpath
     sys.path.append(dirname(dirname(realpath(__file__))))
-    from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
+    from editing.remove_annotations import remove_annotations_ast
     del dirname, realpath
 
-from editing.remove_annotations import remove_annotations_ast
+from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
 from editing.file_handlers.pyfile import PyFileTracker
 
 

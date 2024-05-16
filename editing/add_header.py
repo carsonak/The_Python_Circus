@@ -1,10 +1,12 @@
+#!/usr/bin/env python
+"""Module for add_header."""
 from contextlib import AbstractContextManager
 import os
 from os.path import basename, splitext
 import shutil
 import stat
-from types import TracebackType
 from tempfile import NamedTemporaryFile
+from types import TracebackType
 
 
 class Escape(AbstractContextManager):
@@ -42,7 +44,7 @@ def add_header(
     if not isinstance(shebang, str):
         raise TypeError("shebang must be a string")
 
-    shebang = "".join((shebang.strip(), "\n"))
+    shebang = "".join([shebang.strip(), "\n"])
     if not shebang.startswith("#!"):
         raise ValueError(
             "shebang must be a valid unix shebang."
@@ -55,10 +57,10 @@ def add_header(
     if isinstance(docstring, str) and docstring:
         docstring = docstring.strip()
         if not docstring.startswith(("'''", '"""')):
-            docstring = "".join(('"""', docstring))
+            docstring = "".join(['"""', docstring])
 
         if not docstring.endswith(("'''", '"""')):
-            docstring = "".join((docstring, '"""'))
+            docstring = "".join([docstring, '"""'])
 
     try:
         with (

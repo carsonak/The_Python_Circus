@@ -4,11 +4,11 @@ exclude =
     .git,
     # There's no value in checking cache directories
     __pycache__,
-    .mypy_cache
+    .mypy_cache,
     # No need to check vscode configurations
-    .vscode
+    .vscode,
     # Test file with mock code
-    test_re.py
+    test_re.py,
 
 # Plugins required before running checker
 require-plugins =
