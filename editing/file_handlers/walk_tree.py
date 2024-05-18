@@ -5,14 +5,14 @@ from itertools import zip_longest
 import os
 import re
 
-from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
-from editing.text.string import strip_path
+from file_handlers.files_dirs_search_list import FSSearchList
+from text.string import strip_path
 
 
 def walk_tree(
     start: str, pattern: str | None = None,
-    whitelist: FileSystemBWlist | None = None,
-    blacklist: FileSystemBWlist | None = None,
+    whitelist: FSSearchList | None = None,
+    blacklist: FSSearchList | None = None,
     max_depth: int = -1,
 ) -> Iterator[tuple[str, list[str], list[str]]]:
     """Genarate the directory tree of the given directory.
@@ -48,8 +48,8 @@ def walk_tree(
         TypeError: start is not a string.
             pattern is not a string.
             maxdepth is not an int.
-            whitelist is not None or an instance of FileSystemBWlist.
-            blacklist is not None or an instance of FileSystemBWlist.
+            whitelist is not None or an instance of FSSearchList.
+            blacklist is not None or an instance of FSSearchList.
     """
     if type(start) is not str:
         raise TypeError("start must be a string")
@@ -59,18 +59,18 @@ def walk_tree(
 
     if (
         whitelist is not None and
-        not isinstance(whitelist, FileSystemBWlist)
+        not isinstance(whitelist, FSSearchList)
     ):
         raise TypeError(
-            "whitelist must be None or an instance of FileSystemBWlist"
+            "whitelist must be None or an instance of FSSearchList"
         )
 
     if (
         blacklist is not None and
-        not isinstance(blacklist, FileSystemBWlist)
+        not isinstance(blacklist, FSSearchList)
     ):
         raise TypeError(
-            "blacklist must be None or an instance of FileSystemBWlist"
+            "blacklist must be None or an instance of FSSearchList"
         )
 
     if type(max_depth) is not int:
@@ -89,8 +89,8 @@ def walk_tree(
                     matched_dirs.add(dir)
 
                 if (
-                    (whitelist and whitelist.in_dirs(rel_dirname)) or
-                    (blacklist and not blacklist.in_dirs(rel_dirname))
+                    (whitelist and whitelist.match_dir(rel_dirname)) or
+                    (blacklist and not blacklist.match_dir(rel_dirname))
                 ):
                     matched_dirs.add(dir)
 
@@ -100,8 +100,8 @@ def walk_tree(
                     matched_files.add(file)
 
                 if (
-                    (whitelist and not whitelist.in_files(rel_filename)) or
-                    (blacklist and blacklist.in_files(rel_filename))
+                    (whitelist and not whitelist.match_file(rel_filename)) or
+                    (blacklist and blacklist.match_file(rel_filename))
                 ):
                     matched_files.add(file)
 

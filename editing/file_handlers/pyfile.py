@@ -10,17 +10,9 @@ from sys import stderr
 from types import MappingProxyType
 from typing import NamedTuple, TypedDict, Union
 
-try:
-    from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
-except ModuleNotFoundError:
-    from sys import path
-    from os.path import dirname, realpath
-    path.append(dirname(dirname(dirname(realpath(__file__)))))
-    from editing.file_handlers.filesystem_bw_list import FileSystemBWlist
-    del path, realpath, dirname
-
-from editing.file_handlers.walk_tree import walk_tree
-from editing.text.string import strip_path
+from file_handlers.files_dirs_search_list import FSSearchList
+from file_handlers.walk_tree import walk_tree
+from text.string import strip_path
 
 
 class FileType(NamedTuple):
@@ -66,7 +58,7 @@ def get_filetype(file: str | bytes | os.PathLike) -> FileType:
         with suppress(PermissionError), open(filename, "r") as f:
             first_line = f.readline().strip()
 
-    match_obj: re.Match | None = re.match(
+    shebang_match: re.Match | None = re.match(
         r"""
         ^\#!
         (?P<dir_path> \/+ (?: (?<!-) [\w.-]+ \/+ )* )
@@ -76,8 +68,8 @@ def get_filetype(file: str | bytes | os.PathLike) -> FileType:
         first_line,
         re.VERBOSE,
     )
-    if match_obj is None:
-        match_obj = re.match(
+    if shebang_match is None:
+        shebang_match = re.match(
             r"""
             ^\#!
             (?P<dir_path> \/+ (?: (?<!-) [\w.-]+ \/+ )* )
@@ -89,8 +81,8 @@ def get_filetype(file: str | bytes | os.PathLike) -> FileType:
             re.VERBOSE
         )
 
-    if match_obj is not None:
-        file_type = match_obj.group("exe").strip()
+    if shebang_match is not None:
+        file_type = shebang_match.group("exe").strip()
 
     return FileType(filename, is_file, file_type)
 
@@ -110,7 +102,7 @@ class PyFileData:
 
     @property
     def file(self) -> File:
-        """A TypedDict with filename and and it's coontents."""
+        """A TypedDict with filename and and it's contents."""
         return self.__file
 
     @property
@@ -188,9 +180,9 @@ class PyFileData:
             val: the abstract syntax tree of a Python script or None.
 
         Raises:
-            TypeError: val is not an instance of ast.AST or sNone.
+            TypeError: val is not an instance of ast.AST or None.
         """
-        self.__tree: ast.AST | None = None
+        self.__tree = None
         if val is None:
             return
 
@@ -223,8 +215,8 @@ class PyFileTracker:
         ] = (),
         directory: str | bytes | os.PathLike = "",
         max_descent: int = -1,
-        blacklist: FileSystemBWlist | None = None,
-        whitelist: FileSystemBWlist | None = None,
+        blacklist: FSSearchList | None = None,
+        whitelist: FSSearchList | None = None,
         pattern: str | None = None,
     ):
         """Initialise instance attributes for tracking files.
@@ -269,7 +261,7 @@ class PyFileTracker:
         Initialises a new mapping of filenames to instances of PyFileData.
         If an iterable is provided, any objects in it that raise a TypeError
         when called with os.fspath(), or that cannot be validated as Python
-        scripts via their extensions or shebangs will be ignored.
+        scripts via their extensions or shebangs will be skipped and .
 
         Updates to self.directory will not remove any files already stored.
 
@@ -280,9 +272,8 @@ class PyFileTracker:
             TypeError: pyfiles is neither an instance of os.PathLike,
                 str or bytes nor an iterable of the same.
         """
-        temp: PyFileData
         if isinstance(pyfiles, (str, bytes, os.PathLike)):
-            temp = PyFileData(pyfiles)
+            temp: PyFileData = PyFileData(pyfiles)
             if temp.filename:
                 temp.filename = strip_path(temp.filename)
                 self.__pyfiles[temp.filename] = temp
@@ -360,12 +351,12 @@ class PyFileTracker:
         self.__depth = depth
 
     @property
-    def blacklist(self) -> FileSystemBWlist | None:
+    def blacklist(self) -> FSSearchList | None:
         """A blacklist of file/directory basenames."""
         return self.__blacklist
 
     @blacklist.setter
-    def blacklist(self, blacklist: FileSystemBWlist | None) -> None:
+    def blacklist(self, blacklist: FSSearchList | None) -> None:
         """Initialise blacklist.
 
         Args:
@@ -373,41 +364,41 @@ class PyFileTracker:
             a search.
 
         Raises:
-            TypeError: blacklist is not None or an instance of FileSystemBWlist
+            TypeError: blacklist is not None or an instance of FSSearchList
         """
         if (
             blacklist is not None and
-            not isinstance(blacklist, FileSystemBWlist)
+            not isinstance(blacklist, FSSearchList)
         ):
             raise TypeError(
                 "blacklist must be an instance of "
-                f"{FileSystemBWlist} or {None}"
+                f"{FSSearchList} or {None}"
             )
 
         self.__blacklist = blacklist
 
     @property
-    def whitelist(self) -> FileSystemBWlist | None:
+    def whitelist(self) -> FSSearchList | None:
         """A whitelist of file/directory basenames."""
         return self.__whitelist
 
     @whitelist.setter
-    def whitelist(self, whitelist: FileSystemBWlist | None) -> None:
+    def whitelist(self, whitelist: FSSearchList | None) -> None:
         """Initialise whitelist.
 
         Args:
             whitelist: a list of file or directory basenames to search for.
 
         Raises:
-            TypeError: whitelist is not None or an instance of FileSystemBWlist
+            TypeError: whitelist is not None or an instance of FSSearchList
         """
         if (
             whitelist is not None and
-            not isinstance(whitelist, FileSystemBWlist)
+            not isinstance(whitelist, FSSearchList)
         ):
             raise TypeError(
                 "whitelist must be an instance of "
-                f"{FileSystemBWlist} or {None}"
+                f"{FSSearchList} or {None}"
             )
 
         self.__whitelist = whitelist
@@ -523,3 +514,7 @@ class PyFileTracker:
             raise TypeError("data must be an instance of PyFileData")
 
         self.__pyfiles[strip_path(filename)] = data
+
+
+if __name__ == "__main__":
+    print(f"Main is: {__file__}.")
