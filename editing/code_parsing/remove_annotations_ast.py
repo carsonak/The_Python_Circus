@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 """Module for remove_annotations."""
 
+from argparse import Namespace
 import ast
 import os
 import shutil
 from tempfile import NamedTemporaryFile
-import time
 
 import autopep8  # type: ignore
 from rich import box
@@ -50,13 +50,38 @@ class FancyProgressBars():
         )
 
 
-def parse_rm_ast(args) -> None:
+def parse_rm_ast(args: Namespace) -> None:
     """Process parsed arguments."""
-    bl: FSSearchList | None = FSSearchList(
-        directories={"__pycache__"}
-    )
+    f: list[str] = []
+    if args.files:
+        f = args.files
+
+    dir: str = ""
+    if args.directory:
+        dir = args.directory
+
+    depth: int = -1
+    if args.depth:
+        depth = args.depth
+
+    wl: FSSearchList = FSSearchList()
+    if args.include_files:
+        wl.files = args.include_files
+
+    if args.include_dirs:
+        wl.directories = args.include_dirs
+
+    bl: FSSearchList = FSSearchList()
+    if args.exclude_files:
+        bl.files = args.exclude_files
+
+    if args.exclude_dirs:
+        bl.directories = args.exclude_dirs
+
     tracker: PyFileTracker = PyFileTracker(
-        set(), "./env_arcade/arcade", blacklist=bl)
+        pyfiles=f, directory=dir, max_descent=depth, blacklist=bl,
+        whitelist=wl,
+    )
 
     p: FancyProgressBars = FancyProgressBars()
     progress_group: Group = Group(
@@ -66,28 +91,31 @@ def parse_rm_ast(args) -> None:
         ),
         p.overall_progress,
     )
-    task_id_o = p.overall_progress.add_task(
-        "Processing", total=len(tracker.pyfiles)
-    )
+    if args.show_progress:
+        task_id_o = p.overall_progress.add_task(
+            "Processing", total=len(tracker.pyfiles)
+        )
+
     with Live(progress_group, vertical_overflow="visible"):
         for file, data in tracker.pyfiles.items():
             if not os.stat(file).st_size:
                 continue
 
-            task_id_f = p.file_overall_progess.add_task(
-                description="...", file=file)
+            if args.show_progress:
+                task_id_f = p.file_overall_progess.add_task(
+                    description="...", file=file)
+                remove_annotations_ast(data, file, p.file_tasks_progress)
+                p.file_overall_progess.stop_task(task_id_f)
+                p.file_overall_progess.update(
+                    task_id_f, description="[dark_green]Finished")
+                p.overall_progress.update(task_id_o, advance=1)
+            else:
+                remove_annotations_ast(data, file)
 
-            remove_annotations_ast(data, file, p.file_tasks_progress)
-
-            p.file_overall_progess.stop_task(task_id_f)
-            p.file_overall_progess.update(
-                task_id_f, description="[dark_green]Finished")
-            p.overall_progress.update(task_id_o, advance=1)
-
-        p.overall_progress.stop_task(task_id_o)
-        p.overall_progress.update(
-            task_id_o, description="[bold green]Completed")
-        time.sleep(0.2)
+        if args.show_progress:
+            p.overall_progress.stop_task(task_id_o)
+            p.overall_progress.update(
+                task_id_o, description="[bold green]Completed")
 
 
 def remove_annotations_ast(
