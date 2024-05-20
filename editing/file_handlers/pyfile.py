@@ -5,7 +5,7 @@ import ast
 from collections.abc import Iterable
 from contextlib import suppress
 import os
-import re
+import regex
 from sys import stderr
 from types import MappingProxyType
 from typing import NamedTuple, TypedDict, Union
@@ -58,27 +58,27 @@ def get_filetype(file: str | bytes | os.PathLike) -> FileType:
         with suppress(PermissionError), open(filename, "r") as f:
             first_line = f.readline().strip()
 
-    shebang_match: re.Match | None = re.match(
+    shebang_match: regex.Match | None = regex.match(
         r"""
         ^\#!
-        (?P<dir_path> \/+ (?: (?<!-) [\w.-]+ \/+ )* )
-        (?P<exe> (?<!-) [\w.-]+)
-        (?P<opts>\ +(?:-[\w-]+(?:\ +|=)?) )*$
+        (?P<dir_path> (?> \/+ (?: (?<!-) [\w.-]+ \/+ )* ) )
+        (?P<exe> (?> (?<!-) [\w.-]+ ) )
+        (?P<opts> (?> \ +(?:-[\w-]+(?:\ +|=)? ) ) )*$
         """,
         first_line,
-        re.VERBOSE,
+        regex.VERBOSE,
     )
     if shebang_match is None:
-        shebang_match = re.match(
+        shebang_match = regex.match(
             r"""
             ^\#!
-            (?P<dir_path> \/+ (?: (?<!-) [\w.-]+ \/+ )* )
+            (?P<dir_path> (?> \/+ (?: (?<!-) [\w.-]+ \/+ )* ) )
             env\ +
-            (?P<opts> (?:-[\w-]+=?)\ * )*
-            (?P<exe> (?<!-) [\w.-]+ )
+            (?P<opts> (?> (?:-[\w-]+=?)\ * ) )*
+            (?P<exe> (?> (?<!-) [\w.-]+ ) )
             """,
             first_line,
-            re.VERBOSE
+            regex.VERBOSE
         )
 
     if shebang_match is not None:
@@ -210,8 +210,7 @@ class PyFileTracker:
     def __init__(
         self,
         pyfiles: Union[
-            Iterable[str | bytes | os.PathLike] |
-            str | bytes | os.PathLike
+            Iterable[str | bytes | os.PathLike], str, bytes, os.PathLike
         ] = (),
         directory: str | bytes | os.PathLike = "",
         max_descent: int = -1,
@@ -514,7 +513,3 @@ class PyFileTracker:
             raise TypeError("data must be an instance of PyFileData")
 
         self.__pyfiles[strip_path(filename)] = data
-
-
-if __name__ == "__main__":
-    print(f"Main is: {__file__}.")
