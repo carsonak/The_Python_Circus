@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Module for walk_tree."""
+"""Module for walk_directory."""
 from collections.abc import Iterator
 from itertools import zip_longest
 import os
@@ -9,7 +9,7 @@ from file_handlers.files_dirs_search_list import FSSearchList
 from text.string import strip_path
 
 
-def walk_tree(
+def walk_directory(
     start: str, pattern: str | None = None,
     whitelist: FSSearchList | None = None,
     blacklist: FSSearchList | None = None,

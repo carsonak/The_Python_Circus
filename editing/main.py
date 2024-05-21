@@ -4,8 +4,8 @@
 import argparse
 from argparse import ArgumentParser
 
-from code_parsing.add_header import add_header
-from code_parsing.remove_annotations_ast import remove_annotations_ast
+from code_parsing.add_header import add_header_arg_parser
+from code_parsing.remove_annotations_ast import rm_ast_arg_parser
 
 
 def main() -> None:
@@ -67,7 +67,7 @@ def main() -> None:
         "-p", "--show-progress", action="store_true",
         help=("Toggles on the progress bars.")
     )
-    remove_annotations.set_defaults(func=remove_annotations_ast)
+    remove_annotations.set_defaults(func=rm_ast_arg_parser)
 
     header: ArgumentParser = sub_parsers.add_parser(
         "add-header", aliases=["add-h"],
@@ -85,7 +85,7 @@ def main() -> None:
         help=("Path to a Python project directory. "
               "Defaults to current directory."),
     )
-    header.set_defaults(func=add_header)
+    header.set_defaults(func=add_header_arg_parser)
 
     args: argparse.Namespace = main_parser.parse_args()
     args.func(args)

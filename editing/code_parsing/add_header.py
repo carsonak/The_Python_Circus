@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Module for add_header."""
 
+from argparse import Namespace
 from contextlib import AbstractContextManager
 import os
 from os.path import basename, splitext
@@ -8,6 +9,8 @@ import shutil
 import stat
 from tempfile import NamedTemporaryFile
 from types import TracebackType
+
+# from file_handlers.file_tracker import PyFileTracker
 
 
 class Escape(AbstractContextManager):
@@ -34,6 +37,15 @@ class Escape(AbstractContextManager):
             return True
 
         return self.context.__exit__(exc_type, exc_value, traceback)
+
+
+def add_header_arg_parser(args: Namespace) -> None:
+    """Parse command line arguments for add_header."""
+    if args.files:
+        for file in args.files:
+            add_header(file, args.shebang, args.docstring)
+    elif args.directory:
+        pass
 
 
 def add_header(
@@ -75,8 +87,10 @@ def add_header(
                 raise Escape.Break
 
             docline: str = line1.lstrip()
-            while not docline:
-                docline = file.readline().lstrip()
+            for line in file:
+                docline = line.lstrip()
+                if docline:
+                    break
 
             if docline.startswith(("'''", '"""')):
                 docline = ""

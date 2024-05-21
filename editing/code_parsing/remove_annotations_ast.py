@@ -18,7 +18,7 @@ from rich.progress import (
 
 from code_parsing.ast_node_transformer import TypeHintsRemover
 from file_handlers.files_dirs_search_list import FSSearchList
-from file_handlers.pyfile import PyFileData, PyFileTracker
+from file_handlers.file_data import PyFileData, PyFileTracker
 
 
 class FancyProgressBars():
@@ -50,7 +50,7 @@ class FancyProgressBars():
         )
 
 
-def parse_rm_ast(args: Namespace) -> None:
+def rm_ast_arg_parser(args: Namespace) -> None:
     """Process parsed arguments."""
     f: list[str] = []
     if args.files:

@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Module for blackset_whiteset."""
 
+from __future__ import annotations
 from collections.abc import Hashable, Iterable, Iterator
 from contextlib import suppress
 from typing import Union
@@ -48,7 +49,7 @@ class StaticSet:
         return f"{self.__class__.__name__}({self.__mut_items})"
 
     def __add__(
-            self, other: Union[set, frozenset, "StaticSet"]) -> "StaticSet":
+            self, other: Union[set, frozenset, StaticSet]) -> StaticSet:
         """Return a union of self and other."""
         ss: StaticSet = StaticSet()
         if isinstance(other, StaticSet):
@@ -66,7 +67,7 @@ class StaticSet:
         else:
             return NotImplemented
 
-    def __iadd__(self, other: Union[set, frozenset, "StaticSet"]) -> None:
+    def __iadd__(self, other: Union[set, frozenset, StaticSet]) -> None:
         """Update self with a union of self and other."""
         if isinstance(other, StaticSet):
             if (
@@ -84,7 +85,7 @@ class StaticSet:
             return NotImplemented
 
     def __sub__(
-            self, other: Union[set, frozenset, "StaticSet"]) -> "StaticSet":
+            self, other: Union[set, frozenset, StaticSet]) -> StaticSet:
         """Return a difference of self and other."""
         ss: StaticSet = StaticSet()
         if isinstance(other, StaticSet):
@@ -102,7 +103,7 @@ class StaticSet:
         else:
             return NotImplemented
 
-    def __isub__(self, other: Union[set, frozenset, "StaticSet"]) -> None:
+    def __isub__(self, other: Union[set, frozenset, StaticSet]) -> None:
         """Update self with the difference of self and other."""
         if isinstance(other, StaticSet):
             if (
@@ -120,7 +121,7 @@ class StaticSet:
             return NotImplemented
 
     def __and__(
-            self, other: Union[set, frozenset, "StaticSet"]) -> "StaticSet":
+            self, other: Union[set, frozenset, StaticSet]) -> StaticSet:
         """Return an intersection of self and other."""
         ss: StaticSet = StaticSet()
         if isinstance(other, StaticSet):
@@ -138,7 +139,7 @@ class StaticSet:
         else:
             return NotImplemented
 
-    def __iand__(self, other: Union[set, frozenset, "StaticSet"]) -> None:
+    def __iand__(self, other: Union[set, frozenset, StaticSet]) -> None:
         """Update self with an intersection of self and other."""
         if isinstance(other, StaticSet):
             if (
@@ -155,7 +156,7 @@ class StaticSet:
         else:
             return NotImplemented
 
-    def __or__(self, other: Union[set, frozenset, "StaticSet"]) -> "StaticSet":
+    def __or__(self, other: Union[set, frozenset, StaticSet]) -> StaticSet:
         """Return a union of self and other."""
         ss: StaticSet = StaticSet()
         if isinstance(other, StaticSet):
@@ -173,7 +174,7 @@ class StaticSet:
         else:
             return NotImplemented
 
-    def __ior__(self, other: Union[set, frozenset, "StaticSet"]) -> None:
+    def __ior__(self, other: Union[set, frozenset, StaticSet]) -> None:
         """Update self with a union of self and other."""
         if isinstance(other, StaticSet):
             if (
@@ -267,7 +268,7 @@ class StaticSet:
         """
         self.__mut_items.discard(item)
 
-    def difference(self, other: "StaticSet") -> "StaticSet":
+    def difference(self, other: StaticSet) -> StaticSet:
         """Return a difference of self and other."""
         if not isinstance(other, StaticSet):
             raise TypeError("Other is not an instance of StaticSet")
@@ -282,7 +283,7 @@ class StaticSet:
         ss.update(self.__mut_items.difference(other.__mut_items))
         return ss
 
-    def difference_update(self, other: "StaticSet") -> None:
+    def difference_update(self, other: StaticSet) -> None:
         """Update self with a difference of self and other."""
         if not isinstance(other, StaticSet):
             raise TypeError("Other is not an instance of StaticSet")
@@ -297,7 +298,7 @@ class StaticSet:
         ss.update(self.__mut_items.difference(other.__mut_items))
         self.__mut_items = ss.__mut_items
 
-    def intersection(self, other: "StaticSet") -> "StaticSet":
+    def intersection(self, other: StaticSet) -> StaticSet:
         """Return an intersection of self and other."""
         if not isinstance(other, StaticSet):
             raise TypeError("Other is not an instance of StaticSet")
@@ -312,7 +313,7 @@ class StaticSet:
         ss.update(self.__mut_items.intersection(other.__mut_items))
         return ss
 
-    def intersection_update(self, other: "StaticSet") -> None:
+    def intersection_update(self, other: StaticSet) -> None:
         """Return an intersection of self and other."""
         if not isinstance(other, StaticSet):
             raise TypeError("Other is not an instance of StaticSet")
