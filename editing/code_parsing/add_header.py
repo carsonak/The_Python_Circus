@@ -44,8 +44,6 @@ def add_header_arg_parser(args: Namespace) -> None:
     if args.files:
         for file in args.files:
             add_header(file, args.shebang, args.docstring)
-    elif args.directory:
-        pass
 
 
 def add_header(

@@ -79,12 +79,6 @@ def main() -> None:
         help=("List of space separated file paths. "
               "Supports Unix style shell wildcards."),
     )
-    header.add_argument(
-        "-dir", "--directory", action="store", nargs="?", const=".",
-        metavar="dir",
-        help=("Path to a Python project directory. "
-              "Defaults to current directory."),
-    )
     header.set_defaults(func=add_header_arg_parser)
 
     args: argparse.Namespace = main_parser.parse_args()
