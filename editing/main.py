@@ -4,8 +4,8 @@
 import argparse
 from argparse import ArgumentParser
 
-from code_parsing.add_header import add_header_arg_parser
-from code_parsing.remove_annotations_ast import rm_ast_arg_parser
+from code_parsing.add_shebang import process_add_shebang_args
+from code_parsing.remove_annotations_ast import process_remove_annotations_args
 
 
 def main() -> None:
@@ -67,7 +67,7 @@ def main() -> None:
         "-p", "--show-progress", action="store_true",
         help=("Toggles on the progress bars.")
     )
-    remove_annotations.set_defaults(func=rm_ast_arg_parser)
+    remove_annotations.set_defaults(func=process_remove_annotations_args)
 
     header: ArgumentParser = sub_parsers.add_parser(
         "add-header", aliases=["add-h"],
@@ -79,7 +79,11 @@ def main() -> None:
         help=("List of space separated file paths. "
               "Supports Unix style shell wildcards."),
     )
-    header.set_defaults(func=add_header_arg_parser)
+    header.add_argument(
+        "--shebang", action="store",
+        help=("shebang string to be added to the top of the file."),
+    )
+    header.set_defaults(func=process_add_shebang_args)
 
     args: argparse.Namespace = main_parser.parse_args()
     args.func(args)

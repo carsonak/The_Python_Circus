@@ -5,7 +5,7 @@ from itertools import zip_longest
 import os
 import re
 
-from file_handlers.files_dirs_search_list import FSSearchList
+from file_handlers.file_system_search_list import FSSearchList
 from text.string import strip_path
 
 

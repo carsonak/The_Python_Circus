@@ -13,13 +13,12 @@ from rich.console import Group
 from rich.live import Live
 from rich.panel import Panel
 from rich.progress import (
-    BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
-)
+    BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn)
 
 from code_parsing.ast_node_transformer import TypeHintsRemover
 from file_handlers.file_data import FileData, Interpretor
+from file_handlers.file_system_search_list import FSSearchList
 from file_handlers.file_tracker import FileTracker
-from file_handlers.files_dirs_search_list import FSSearchList
 
 
 class FancyProgressBars():
@@ -51,7 +50,7 @@ class FancyProgressBars():
         )
 
 
-def rm_ast_arg_parser(args: Namespace) -> None:
+def process_remove_annotations_args(args: Namespace) -> None:
     """Process parsed arguments."""
     f: list[str] = []
     if args.files:
@@ -88,10 +87,10 @@ def rm_ast_arg_parser(args: Namespace) -> None:
         if data.file_interpretor != Interpretor.PYTHON:
             del tracker[file]
 
-    process_pyfiles(tracker, args.show_progress)
+    process_files(tracker, args.show_progress)
 
 
-def process_pyfiles(tracker: FileTracker, show_progress: bool = False) -> None:
+def process_files(tracker: FileTracker, show_progress: bool = False) -> None:
     """Iterate over discovered files and remove annotations."""
     p: FancyProgressBars = FancyProgressBars()
     progress_group: Group = Group(

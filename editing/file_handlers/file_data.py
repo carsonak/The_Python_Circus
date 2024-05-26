@@ -16,7 +16,7 @@ class Interpretor(Enum):
     BASH = frozenset({".bash", ".bashrc"})
     PYTHON = frozenset({".py", ".pyi", ".pyc"})
     RUBY = frozenset({".rb"})
-    SHELL = frozenset({".sh"})
+    SH = frozenset({".sh"})
     MAKE = frozenset({""})
 
 
@@ -167,7 +167,7 @@ def get_file_interpretor(
     if shebang_match is not None:
         file_type = shebang_match.group("exe").strip()
 
-    if file_type[0] == ".":
+    if file_type.startswith("."):
         for ext, inter in EXTENSIONS.items():
             if file_type == ext:
                 return inter

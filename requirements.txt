@@ -26,7 +26,10 @@ flake8==6.1.0
 flake8-bugbear==24.4.26
 flake8-clean-block==0.1.2
 flake8-docstrings==1.7.0
-flake8-quotes==3.4.0
+flake8-literal==1.4.0
+flake8-mock-spec==1.4.0
+flake8-noqa==1.4.0
+flake8-pyprojecttoml==0.0.2
 flake8_simplify==0.21.0
 gyp==0.1
 hacking==6.1.0

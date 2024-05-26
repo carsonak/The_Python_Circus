@@ -133,7 +133,7 @@ class TypeHintsRemover(ast.NodeTransformer):
         node.returns = None
         return self.save_unassigned_var_annotation(node)
 
-    def visit_AnnAssign(self, node: ast.AnnAssign,  # noqa: N802,B906
+    def visit_AnnAssign(self, node: ast.AnnAssign,  # noqa: N802
                         ) -> ast.AST:
         """Remove type annotations from assign statements.
 
@@ -154,7 +154,7 @@ class TypeHintsRemover(ast.NodeTransformer):
 
         return self.generic_visit(ast.Assign(**assign_kwargs))
 
-    def visit_arg(self, node: ast.arg) -> ast.AST:  # noqa: N802,B906
+    def visit_arg(self, node: ast.arg) -> ast.AST:
         """Remove function parameter annotations.
 
         Args:

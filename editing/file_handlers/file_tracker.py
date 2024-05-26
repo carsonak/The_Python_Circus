@@ -9,7 +9,7 @@ from types import MappingProxyType
 from typing import Union
 
 from file_handlers.file_data import FileData
-from file_handlers.files_dirs_search_list import FSSearchList
+from file_handlers.file_system_search_list import FSSearchList
 from file_handlers.walk_directory import walk_directory
 from text.string import strip_path
 
