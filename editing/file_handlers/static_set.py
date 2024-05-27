@@ -15,11 +15,11 @@ class StaticSet:
         Args:
             item: a Hashable to initialise the StaticSet or None.
         """
-        self.__mut_items: set = set()
+        self.__items: frozenset | None = None
         self.__oftype: type | None = None
         if item is not None:
             self.__oftype = type(item)
-            self.__mut_items.add(item)
+            self.__items = frozenset()
 
     @property
     def items(self) -> Iterator:
@@ -41,10 +41,10 @@ class StaticSet:
             ):
                 raise ValueError("Sets contain items of different types")
 
-            ss.update(self.__mut_items & other.__mut_items)
+            ss.update(self.__items & other.__items)
             return ss
         elif isinstance(other, (set, frozenset)):
-            ss.update(self.__mut_items & other)
+            ss.update(self.__items & other)
             return ss
         else:
             return NotImplemented
@@ -61,12 +61,12 @@ class StaticSet:
         Raises:
             TypeError: item is not Hashable.
         """
-        return item in self.__mut_items
+        return item in self.__items
 
     def __eq__(self, other: object) -> bool:
         """Return self == other."""
         if isinstance(other, StaticSet):
-            return self.__mut_items == other.__mut_items
+            return self.__items == other.__items
         else:
             return self == other
 
@@ -79,11 +79,11 @@ class StaticSet:
             ):
                 raise ValueError("Sets contain items of different types")
 
-            self.__mut_items &= other.__mut_items
+            self.__items &= other.__items
         elif isinstance(other, (set, frozenset)):
             ss = StaticSet()
-            ss.update(self.__mut_items & other)
-            self.__mut_items = ss.__mut_items
+            ss.update(self.__items & other)
+            self.__items = ss.__items
         else:
             return NotImplemented
 
@@ -96,9 +96,9 @@ class StaticSet:
             ):
                 raise ValueError("Sets contain items of different types")
 
-            self.__mut_items |= other.__mut_items
+            self.__items |= other.__items
         elif isinstance(other, (set, frozenset)):
-            self.__mut_items |= other
+            self.__items |= other
         else:
             return NotImplemented
 
@@ -111,15 +111,15 @@ class StaticSet:
             ):
                 raise ValueError("Sets contain items of different types")
 
-            self.__mut_items -= other.__mut_items
+            self.__items -= other.__items
         elif isinstance(other, (set, frozenset)):
-            self.__mut_items -= other
+            self.__items -= other
         else:
             return NotImplemented
 
     def __iter__(self) -> Iterator:
         """Return an iterator for the set."""
-        return iter(self.__mut_items)
+        return iter(self.__items)
 
     def __ixor__(self, other: SetLike) -> None:
         """Update self with xor of self and other."""
@@ -130,27 +130,27 @@ class StaticSet:
             ):
                 raise ValueError("Sets contain items of different types")
 
-            self.__mut_items ^= other.__mut_items
+            self.__items ^= other.__items
         elif isinstance(other, (set, frozenset)):
-            self.__mut_items ^= other
+            self.__items ^= other
         else:
             return NotImplemented
 
     def __le__(self, other: object) -> bool:
         """Return self <= other."""
         if isinstance(other, StaticSet):
-            return self.__mut_items <= other.__mut_items
+            return self.__items <= other.__items
         else:
             return self <= other
 
     def __len__(self) -> int:
         """Return number of items in the set."""
-        return len(self.__mut_items)
+        return len(self.__items)
 
     def __lt__(self, other: object) -> bool:
         """Return self < other."""
         if isinstance(other, StaticSet):
-            return self.__mut_items < other.__mut_items
+            return self.__items < other.__items
         else:
             return self < other
 
@@ -164,17 +164,17 @@ class StaticSet:
             ):
                 raise ValueError("Sets contain items of different types")
 
-            ss.update(self.__mut_items | other.__mut_items)
+            ss.update(self.__items | other.__items)
             return ss
         elif isinstance(other, (set, frozenset)):
-            ss.update(self.__mut_items | other)
+            ss.update(self.__items | other)
             return ss
         else:
             return NotImplemented
 
     def __repr__(self) -> str:
         """Return an official string representation of this instance."""
-        return f"{self.__class__.__name__}({self.__mut_items})"
+        return f"{self.__class__.__name__}({self.__items})"
 
     def __sub__(
             self, other: SetLike) -> StaticSet:
@@ -187,10 +187,10 @@ class StaticSet:
             ):
                 raise ValueError("Sets contain items of different types")
 
-            ss.update(self.__mut_items - other.__mut_items)
+            ss.update(self.__items - other.__items)
             return ss
         elif isinstance(other, (set, frozenset)):
-            ss.update(self.__mut_items - other)
+            ss.update(self.__items - other)
             return ss
         else:
             return NotImplemented
@@ -205,10 +205,10 @@ class StaticSet:
             ):
                 raise ValueError("Sets contain items of different types")
 
-            ss.update(self.__mut_items ^ other.__mut_items)
+            ss.update(self.__items ^ other.__items)
             return ss
         elif isinstance(other, (set, frozenset)):
-            ss.update(self.__mut_items ^ other)
+            ss.update(self.__items ^ other)
             return ss
         else:
             return NotImplemented
@@ -230,16 +230,16 @@ class StaticSet:
             raise TypeError(
                 f"Item <{item}> is not an instance of {self.__oftype}")
 
-        self.__mut_items.add(item)
+        self.__items.add(item)
 
     def clear(self) -> None:
         """Clear all items from the set."""
-        self.__mut_items.clear()
+        self.__items.clear()
 
     def copy(self) -> StaticSet:
         """Return a shallow copy of this set."""
         ss = StaticSet()
-        ss.update(self.__mut_items.copy())
+        ss.update(self.__items.copy())
         return ss
 
     def difference(self, other: SetLike) -> StaticSet:
@@ -252,10 +252,10 @@ class StaticSet:
             ):
                 raise ValueError("Sets contain items of different types")
 
-            ss.update(self.__mut_items.difference(other.__mut_items))
+            ss.update(self.__items.difference(other.__items))
             return ss
         elif isinstance(other, (set, frozenset)):
-            ss.update(self.__mut_items.difference(other))
+            ss.update(self.__items.difference(other))
             return ss
         else:
             return NotImplemented
@@ -269,11 +269,11 @@ class StaticSet:
             ):
                 raise ValueError("Sets contain items of different types")
 
-            self.__mut_items.difference_update(other.__mut_items)
+            self.__items.difference_update(other.__items)
         elif isinstance(other, (set, frozenset)):
             ss = StaticSet()
-            ss.update(self.__mut_items.difference(other))
-            self.__mut_items = ss.__mut_items
+            ss.update(self.__items.difference(other))
+            self.__items = ss.__items
         else:
             return NotImplemented
 
@@ -288,7 +288,7 @@ class StaticSet:
         Raises:
             TypeError: item is not Hashable
         """
-        self.__mut_items.discard(item)
+        self.__items.discard(item)
 
     def intersection(self, other: SetLike) -> StaticSet:
         """Return an intersection of self and other."""
@@ -300,10 +300,10 @@ class StaticSet:
             ):
                 raise ValueError("Sets contain items of different types")
 
-            ss.update(self.__mut_items.intersection(other.__mut_items))
+            ss.update(self.__items.intersection(other.__items))
             return ss
         elif isinstance(other, (set, frozenset)):
-            ss.update(self.__mut_items.intersection(other))
+            ss.update(self.__items.intersection(other))
             return ss
         else:
             return NotImplemented
@@ -317,22 +317,22 @@ class StaticSet:
             ):
                 raise ValueError("Sets contain items of different types")
 
-            self.__mut_items.intersection_update(other.__mut_items)
+            self.__items.intersection_update(other.__items)
         elif isinstance(other, (set, frozenset)):
             ss = StaticSet()
-            ss.update(self.__mut_items.intersection(other))
-            self.__mut_items = ss.__mut_items
+            ss.update(self.__items.intersection(other))
+            self.__items = ss.__items
         else:
             return NotImplemented
 
     def remove(self, item: Hashable) -> None:
         """Remove item from the set, if item is not a member raise KeyError."""
-        self.__mut_items.remove(item)
+        self.__items.remove(item)
 
     def union(self, items: Iterable[Hashable]) -> StaticSet:
         """Return a union of StaticSet with items in the Iterable."""
         ss = StaticSet()
-        ss.update(self.__mut_items.union(items))
+        ss.update(self.__items.union(items))
         return ss
 
     def update(self, items: Iterable[Hashable]) -> None:
@@ -351,7 +351,7 @@ class StaticSet:
             with suppress(StopIteration):
                 i: Hashable = next(iter_items)
                 self.__oftype = type(i)
-                self.__mut_items.add(i)
+                self.__items.add(i)
 
         with suppress(StopIteration):
             while items is not None and True:
@@ -360,7 +360,7 @@ class StaticSet:
                     raise TypeError(
                         f"Item <{i}> is not an instance of {self.__oftype}")
 
-                self.__mut_items.add(i)
+                self.__items.add(i)
 
 
 SetLike = set | frozenset | StaticSet

@@ -6,6 +6,15 @@ import unittest
 
 from file_handlers.static_set import StaticSet
 
+# StaticSet should validate all items in the set are of the same type.
+# This happens when:
+# # Items are first added to the set
+# # The set is updated with Items
+
+# INITIALISATION #
+# None or a Hashable object
+# Return None or frozenset
+
 
 class TestStaticSetInitMethod(unittest.TestCase):
     """Tests for initialising an Instance."""
