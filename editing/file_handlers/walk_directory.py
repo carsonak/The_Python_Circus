@@ -82,17 +82,17 @@ def walk_directory(
     for root, dirnames, filenames in os.walk(start):
         matched_files: set[str] = set()
         matched_dirs: set[str] = set()
-        for dir, file in zip_longest(dirnames, filenames):
-            if dir is not None:
-                rel_dirname: str = os.sep.join((root, dir))
+        for directory, file in zip_longest(dirnames, filenames):
+            if directory is not None:
+                rel_dirname: str = os.sep.join((root, directory))
                 if pat_obj is not None and re.match(pat_obj, rel_dirname):
-                    matched_dirs.add(dir)
+                    matched_dirs.add(directory)
 
                 if (
                     (whitelist and whitelist.match_dir(rel_dirname)) or
                     (blacklist and not blacklist.match_dir(rel_dirname))
                 ):
-                    matched_dirs.add(dir)
+                    matched_dirs.add(directory)
 
             if file is not None:
                 rel_filename: str = os.sep.join((root, file))
