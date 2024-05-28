@@ -6,14 +6,14 @@ from collections.abc import Iterable, Iterator, Hashable, MutableSet, Set
 from contextlib import suppress
 from typing import TypeVar
 
+_SSHashable = TypeVar("_SSHashable", bound=Hashable)
+_GenHashable = TypeVar("_GenHashable", bound=Hashable)
 
-T = TypeVar("T")
 
-
-class StaticSet(MutableSet):
+class StaticSet(MutableSet[_SSHashable]):
     """A Mutable Set of objects of the same type."""
 
-    def __init__(self, items: Iterable[Hashable] = ()) -> None:
+    def __init__(self, items: Iterable[_SSHashable] = ()) -> None:
         """Initialise a static set from iterable.
 
         Args:
@@ -28,44 +28,49 @@ class StaticSet(MutableSet):
         if isinstance(items, Iterator):
             items = frozenset(items)
 
-        self._check_types(items)
+        self.__oftype = self._check_types(items, self.__oftype)
         self.__items = set(items)
+
+    @property
+    def _items(self) -> set[_SSHashable]:
+        """Return the internal set being used."""
+        return self.__items
 
     @property
     def oftype(self) -> type | None:
         """Return type of all objects in self."""
         return self.__oftype
 
-    def __contains__(self, x: object) -> bool:
+    def __contains__(self, x: Hashable) -> bool:
         """Return if x exists in self."""
         return x in self.__items
 
-    def __isub__(self, other: Iterable) -> StaticSet:
+    def __isub__(
+            self, other: Iterable[Hashable]) -> StaticSet[_SSHashable]:
         """Return self - other."""
         if other is self:
             self.clear()
         else:
-            for value in other:
-                self.discard(value)
+            self.difference_update(other)
 
         return self
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[_SSHashable]:
         """Return an iterator of self."""
         return iter(self.__items)
 
-    def __ior__(self, other: Iterable[T]) -> StaticSet:
+    def __ior__(self, other: Iterable[Hashable]) -> StaticSet[_SSHashable]:
         """Return self | other."""
         self.update(other)
         return self
 
-    def __ixor__(self, other: Iterable[T]) -> StaticSet:
+    def __ixor__(self, other: Iterable[Hashable]) -> StaticSet[_SSHashable]:
         """Return self | other."""
         if other is self:
             self.clear()
         else:
             if not isinstance(other, Set):
-                other = StaticSet(other)
+                other = self._from_iterable(other)
 
             for value in other:
                 if value in self:
@@ -79,40 +84,87 @@ class StaticSet(MutableSet):
         """Return length of self."""
         return len(self.__items)
 
+    def __or__(self, other: Iterable[Hashable]) -> StaticSet[_SSHashable]:
+        """Return self | other."""
+        if not isinstance(other, Iterable):
+            return NotImplemented
+
+        return self.union(other)
+
     def __repr__(self) -> str:
         """Return official string representation of self."""
         if not self:
-            return f"{self.__class__.__name__}()"
+            return f"{self._from_iterable.__name__}()"
 
-        return f"{self.__class__.__name__}({self.__items})"
+        return f"{self._from_iterable.__name__}({self.__items})"
 
-    def _check_types(self, items: Iterable) -> None:
-        """Raise TypeError if items is unsuitable for StaticSet operations."""
+    def __sub__(self, other: Iterable[Hashable]) -> StaticSet[_SSHashable]:
+        """Return self - other."""
+        if not isinstance(other, Iterable):
+            return NotImplemented
+
+        return self.difference(other)
+
+    def __xor__(self, other: Iterable[Hashable]) -> StaticSet[_SSHashable]:
+        """Return self ^ other."""
+        if not isinstance(other, Set):
+            if not isinstance(other, Iterable):
+                return NotImplemented
+
+            other = self._from_iterable(other)
+
+        return (self - other) | (other - self)
+
+    @staticmethod
+    def _check_types(items: Iterable, oftype: type | None) -> type | None:
+        """Check that objects in Iterable are all of same type.
+
+        Args:
+            items: an iterable of objects.
+            oftype: a type used to check all objects in iterable against.
+                if None, the type of the first object in the iterable will be
+                used.
+
+        Raises:
+            TypeError: when items is not an iterable.
+                when objects in the iterable to not match the type.
+        """
         if not isinstance(items, Iterable):
             raise TypeError(f"{type(items)} is not iterable.")
 
-        if self.__oftype is None:
-            with suppress(StopIteration):
-                self.__oftype = type(next(iter(items)))
+        if isinstance(items, Iterator):
+            items = (*items,)
 
-        if isinstance(items, StaticSet) and self.oftype != items.oftype:
+        if oftype is None:
+            with suppress(StopIteration):
+                oftype = type(next(iter(items)))
+
+        if isinstance(items, StaticSet) and oftype != items.oftype:
             raise TypeError("items in both sets are not of the same types")
 
         if (
-            self.__oftype is not None and
+            oftype is not None and
             not isinstance(items, StaticSet) and
-            not all(isinstance(i, self.__oftype) for i in items)
+            not all(type(i) is oftype for i in items)
         ):
             raise TypeError("all objects in iterable must be of the same type")
 
-    def add(self, value: Hashable) -> None:
+        return oftype
+
+    @classmethod
+    def _from_iterable(
+            cls, items: Iterable[_GenHashable]) -> StaticSet[_GenHashable]:
+        """Construct an instance of the class from any iterable input."""
+        return cls(items)
+
+    def add(self, value: _SSHashable) -> None:
         """Add an item to self.
 
         Raises:
-            TypeError: when value is not hashable.
-                when value is not of the same type as items in self.
+            TypeError: when value is not of the same type as items in self.
+                when value is not hashable.
         """
-        self._check_types([value])
+        self.__oftype = self._check_types([value], self.oftype)
         return self.__items.add(value)
 
     def clear(self) -> None:
@@ -120,53 +172,61 @@ class StaticSet(MutableSet):
         self.__items.clear()
         self.__oftype = None
 
-    def copy(self) -> StaticSet:
+    def copy(self) -> StaticSet[_SSHashable]:
         """Return a shallow copy of self."""
-        return StaticSet(self.__items)
+        return self._from_iterable(self.__items)
 
-    def difference(self, *others: Iterable[Hashable]) -> StaticSet:
-        """Return the difference of self and others as a StaticSet."""
-        combined: frozenset[Hashable] = frozenset(
-            item for iterable in others for item in iterable)
-        return StaticSet(self - combined)
+    def difference(
+            self, *others: Iterable[Hashable]) -> StaticSet[_SSHashable]:
+        """Return the difference of self and other sets.
+
+        Raises:
+            TypeError: when an object in others is not an iterable.
+                when an item is not hashable.
+                when an item is of a different type.
+        """
+        return self._from_iterable(self.__items.difference(*others))
 
     def difference_update(self, *others: Iterable[Hashable]) -> None:
-        """Update self with the difference of self and others.
+        """Update self with the difference of self and other sets.
 
         Raises:
-            TypeError: when others is not an iterable.
-                when objects in others are not hashable.
-                when objects in others are not all of the same type.
+            TypeError: when an object in others is not an iterable.
+                when an item is not hashable.
+                when an item is of a different type.
         """
-        combined: frozenset[Hashable] = frozenset(
-            item for iterable in others for item in iterable)
-        self._check_types(combined)
-        self.__items.difference_update(combined)
+        combined: StaticSet = self.difference(*others)
+        self.__oftype = self._check_types(combined, self.oftype)
+        self.__items = combined.__items
 
-    def discard(self, value: Hashable) -> None:
-        """Remove an element from a self if it is a member."""
+    def discard(self, value: _SSHashable) -> None:
+        """Remove value from a self if it is a member, else do nothing."""
         return self.__items.discard(value)
 
-    def intersection(self, *others: Iterable[Hashable]) -> StaticSet:
-        """Return the intrsection of self and others as a new StaticSet."""
-        combined: frozenset[Hashable] = frozenset(
-            item for iterable in others for item in iterable)
-        return StaticSet(self & combined)
-
-    def intersection_update(self, *others: Iterable[Hashable]) -> None:
-        """Update self with the difference of self and others.
+    def intersection(
+            self, *others: Iterable[_SSHashable]) -> StaticSet[_SSHashable]:
+        """Return the intersection of self and other sets.
 
         Raises:
-            TypeError: when others is not an iterable.
-                when objects in others are not hashable.
-                when objects in others are not all of the same type.
+            TypeError: when an object in others is not an iterable.
+                when an item is not hashable.
+                when an item is of a different type.
         """
-        combined: frozenset[Hashable] = frozenset(
-            item for iterable in others for item in iterable)
-        self._check_types(combined)
-        self.__items.intersection_update(combined)
+        return self._from_iterable(self.__items.intersection(*others))
 
-    def isdisjoint(self, other: Iterable[Hashable]) -> bool:
+    def intersection_update(self, *others: Iterable[_SSHashable]) -> None:
+        """Update self with the intersection of self and other sets.
+
+        Raises:
+            TypeError: when an object in others is not an iterable.
+                when an item is not hashable.
+                when an item is of a different type.
+        """
+        combined: StaticSet = self.intersection(*others)
+        self.__oftype = self._check_types(combined, self.oftype)
+        self.__items = combined.__items
+
+    def isdisjoint(self, other: Iterable[_SSHashable]) -> bool:
         """Return True if two sets have a null intersection."""
         return not self.intersection(other)
 
@@ -176,36 +236,64 @@ class StaticSet(MutableSet):
 
     def issuperset(self, other: Iterable[Hashable]) -> bool:
         """Report whether this set contains another set."""
+        if not isinstance(other, Iterable):
+            return NotImplemented
+
+        if not isinstance(other, Set):
+            other = self._from_iterable(other)
+
         return not (other - self)
 
-    def pop(self) -> Hashable:
-        """Return the popped value.  Raise KeyError if empty."""
+    def pop(self) -> _SSHashable:
+        """Return the popped value. Raise KeyError if empty."""
         return self.__items.pop()
 
-    def remove(self, value: Hashable) -> None:
-        """Remove an element. If not a member, raise a KeyError."""
+    def remove(self, value: _SSHashable) -> None:
+        """Remove value. If not a member, raise a KeyError."""
         self.__items.remove(value)
 
-    def union(self, *others: Iterable[Hashable]) -> StaticSet:
-        """Return the union of self and others as a new StaticSet."""
-        combined: frozenset[Hashable] = frozenset(
-            item
-            for iterable in (self.__items, *others)
-            for item in iterable
-        )
-        return StaticSet(combined)
+    def symmetric_difference(
+            self, *others: Iterable[_SSHashable]) -> StaticSet[_SSHashable]:
+        """Return the symmetric_difference of self and others.
 
-    def update(self, *others: Iterable[Hashable]) -> None:
+        Raises:
+            TypeError: when an object in others is not an iterable.
+                when an item is not hashable.
+                when an item is of a different type.
+        """
+        return self._from_iterable(self.__items.symmetric_difference(*others))
+
+    def symmetric_difference_update(
+            self, *others: Iterable[_SSHashable]) -> None:
+        """Update self with the symmetric_difference of self and others.
+
+        Raises:
+            TypeError: when an object in others is not an iterable.
+                when an item is not hashable.
+                when an item is of a different type.
+        """
+        combined: StaticSet = self.symmetric_difference(*others)
+        self.__items = combined.__items
+
+    def union(self, *others: Iterable[_SSHashable]) -> StaticSet[_SSHashable]:
+        """Return the union of self and others as a new StaticSet.
+
+        Raises:
+            TypeError: when an object in others is not an iterable.
+                when an item is not hashable.
+                when an item is of a different type.
+        """
+        return self._from_iterable(self.__items.union(*others))
+
+    def update(self, *others: Iterable[_SSHashable]) -> None:
         """Update self with the union of itself and others.
 
         Raises:
-            TypeError: when others is not an iterable.
-                when objects in others are not hashable.
-                when objects in others are not all of the same type.
+            TypeError: when an object in others is not an iterable.
+                when an item is not hashable.
+                when an item is of a different type.
         """
-        combined: frozenset[Hashable] = frozenset(
-            item for iterable in others for item in iterable)
-        self._check_types(combined)
+        combined: StaticSet[_SSHashable] = self.union(*others)
         self.__items.update(combined)
 
 
@@ -219,7 +307,7 @@ if __name__ == "__main__":
     ss3 = StaticSet(l3)
     print(f"{len(ss3)} items in ss3:", end="")
     for i in ss3:
-        print(f" '{i:}'", end="")
+        print(" '{}'".format(i), end="")
     else:
         print()
 
@@ -283,7 +371,7 @@ if __name__ == "__main__":
     print("ss0 - ss0: ", ss_calc)
     ss_calc = ss0 - ss3
     print("ss0 - ss3: ", ss_calc)
-    # print("ss0 - l3: ", ss0 - l3)
+    print("ss0 - l3: ", ss0 - l3)
 
     print()
 
