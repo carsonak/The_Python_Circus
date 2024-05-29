@@ -94,9 +94,9 @@ class StaticSet(MutableSet[_SSHashable]):
     def __repr__(self) -> str:
         """Return official string representation of self."""
         if not self:
-            return f"{self._from_iterable.__name__}()"
+            return f"{self.__class__.__name__}()"
 
-        return f"{self._from_iterable.__name__}({self.__items})"
+        return f"{self.__class__.__name__}({self.__items})"
 
     def __sub__(self, other: Iterable[Hashable]) -> StaticSet[_SSHashable]:
         """Return self - other."""
@@ -196,12 +196,14 @@ class StaticSet(MutableSet[_SSHashable]):
                 when an item is of a different type.
         """
         combined: StaticSet = self.difference(*others)
-        self.__oftype = self._check_types(combined, self.oftype)
         self.__items = combined.__items
+        self.__oftype = combined.oftype
 
     def discard(self, value: _SSHashable) -> None:
         """Remove value from a self if it is a member, else do nothing."""
-        return self.__items.discard(value)
+        self.__items.discard(value)
+        if not self.__items:
+            self.__oftype = None
 
     def intersection(
             self, *others: Iterable[_SSHashable]) -> StaticSet[_SSHashable]:
@@ -223,8 +225,8 @@ class StaticSet(MutableSet[_SSHashable]):
                 when an item is of a different type.
         """
         combined: StaticSet = self.intersection(*others)
-        self.__oftype = self._check_types(combined, self.oftype)
         self.__items = combined.__items
+        self.__oftype = combined.oftype
 
     def isdisjoint(self, other: Iterable[_SSHashable]) -> bool:
         """Return True if two sets have a null intersection."""
@@ -246,11 +248,17 @@ class StaticSet(MutableSet[_SSHashable]):
 
     def pop(self) -> _SSHashable:
         """Return the popped value. Raise KeyError if empty."""
-        return self.__items.pop()
+        popped: _SSHashable = self.__items.pop()
+        if not self.__items:
+            self.__oftype = None
+
+        return popped
 
     def remove(self, value: _SSHashable) -> None:
         """Remove value. If not a member, raise a KeyError."""
         self.__items.remove(value)
+        if not self.__items:
+            self.__oftype = None
 
     def symmetric_difference(
             self, *others: Iterable[_SSHashable]) -> StaticSet[_SSHashable]:
@@ -274,6 +282,7 @@ class StaticSet(MutableSet[_SSHashable]):
         """
         combined: StaticSet = self.symmetric_difference(*others)
         self.__items = combined.__items
+        self.__oftype = combined.oftype
 
     def union(self, *others: Iterable[_SSHashable]) -> StaticSet[_SSHashable]:
         """Return the union of self and others as a new StaticSet.
@@ -294,7 +303,8 @@ class StaticSet(MutableSet[_SSHashable]):
                 when an item is of a different type.
         """
         combined: StaticSet[_SSHashable] = self.union(*others)
-        self.__items.update(combined)
+        self.__items = combined.__items
+        self.__oftype = combined.oftype
 
 
 if __name__ == "__main__":
