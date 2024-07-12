@@ -26,13 +26,13 @@ EXTENSIONS: MappingProxyType[str, Interpretor] = MappingProxyType({
 
 
 class FileData:
-    """A container for Python scipt data."""
+    """A container for Python script data."""
 
     def __init__(
         self, file_path: str | bytes | os.PathLike | None = None,
         content: str | bytes | None = None, tree: ast.AST | None = None,
     ) -> None:
-        """Initialise a container for Python scipt data.
+        """Initialise a container for Python script data.
 
         Args:
             file_path: path to a file.

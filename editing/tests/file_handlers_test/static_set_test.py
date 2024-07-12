@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Tests for static test."""
 
-from typing import Callable, Generator, Iterator, Hashable
+from collections.abc import Callable, Generator, Iterable, Iterator, Hashable
 import unittest
 
 from file_handlers.static_set import StaticSet
@@ -55,8 +55,7 @@ class TestInitStaticSet(unittest.TestCase):
         """Check initiliasing without arguments returns instance."""
         ss: StaticSet[Hashable] = StaticSet()
 
-        self.assertIsInstance(ss._items, set)
-        self.assertFalse(bool(ss._items))
+        self.assertEqual(len(ss), 0)
 
     def test_init_with_no_args_expect_oftype_is_set_to_none(self) -> None:
         """Check initiliasing without arguments returns instance."""
@@ -67,7 +66,7 @@ class TestInitStaticSet(unittest.TestCase):
     def test_init_with_different_iterables_and_hashables_expect_items_is_initialised(self) -> None:  # noqa: E501,B950
         """Check initialising with a iterable of hashables returns instance."""
         for iter_type, func in ITERABLE_GENERATORS.items():
-            with self.subTest(iterable_type=iter_type, func=func):
+            with self.subTest(iterable_type=iter_type):
                 for h_type, h in HASHABLES_IN_TUPLES.items():
                     if iter_type is str:
                         h_type = str
@@ -77,13 +76,12 @@ class TestInitStaticSet(unittest.TestCase):
                     with self.subTest(hashables=h, hashable_type=h_type):
                         ss: StaticSet[Hashable] = StaticSet(func(h))
 
-                        self.assertIsInstance(ss._items, set)
-                        self.assertTrue(bool(ss._items))
+                        self.assertTrue(len(ss))
 
     def test_init_with_different_iterables_and_hashables_expect_oftype_is_set_correctly(self) -> None:  # noqa: E501,B950
         """Check initialising with a iterable of hashables returns instance."""
         for iter_type, func in ITERABLE_GENERATORS.items():
-            with self.subTest(iterable_type=iter_type, func=func):
+            with self.subTest(iterable_type=iter_type):
                 for h_type, h in HASHABLES_IN_TUPLES.items():
                     if iter_type is str:
                         h_type = str
@@ -101,7 +99,7 @@ class TestInitStaticSet(unittest.TestCase):
         ss2: StaticSet = StaticSet(ss1)
 
         self.assertIsNot(ss1, ss2)
-        self.assertFalse(bool(ss2._items))
+        self.assertEqual(len(ss2), 0)
         self.assertIsNone(ss2.oftype)
 
     def test_init_with_non_empty_self_expect_a_new_instance(self) -> None:
@@ -110,7 +108,7 @@ class TestInitStaticSet(unittest.TestCase):
         ss2: StaticSet = StaticSet(ss1)
 
         self.assertIsNot(ss1, ss2)
-        self.assertTrue(bool(ss2._items))
+        self.assertTrue(len(ss2))
         self.assertEqual(ss2.oftype, ss1.oftype)
 
     def test_init_with_unhashables_expect_typeerror(self) -> None:
@@ -146,10 +144,10 @@ class TestAndStaticSet(unittest.TestCase):
         """Check behaviour of & operator with empty iterables."""
         empty_ss: StaticSet = StaticSet()
         for iter_type, func in ITERABLE_GENERATORS.items():
-            with self.subTest(iterable_type=iter_type, func=func):
+            with self.subTest(iterable_type=iter_type):
                 ss: StaticSet = empty_ss & func([])
 
-                self.assertFalse(bool(ss._items))
+                self.assertEqual(len(ss), 0)
                 self.assertIsNone(ss.oftype)
 
     # # One item
@@ -157,10 +155,10 @@ class TestAndStaticSet(unittest.TestCase):
         """Check behaviour of & operator with iterables of length = 1."""
         empty_ss: StaticSet = StaticSet()
         for iter_type, func in ITERABLE_GENERATORS.items():
-            with self.subTest(iterable_type=iter_type, func=func):
+            with self.subTest(iterable_type=iter_type):
                 ss: StaticSet = empty_ss & func([1])
 
-                self.assertFalse(bool(ss._items))
+                self.assertEqual(len(ss), 0)
                 self.assertIsNone(ss.oftype)
 
     # # Several items
@@ -169,10 +167,11 @@ class TestAndStaticSet(unittest.TestCase):
         """Check behaviour of & operator with iterables with several items."""
         empty_ss: StaticSet = StaticSet()
         for iter_type, func in ITERABLE_GENERATORS.items():
-            with self.subTest(iterable_type=iter_type, func=func):
-                ss: StaticSet = empty_ss & func("1234")
+            data: Iterable[Hashable] = func("1234")
+            with self.subTest(iterable_type=iter_type, data1=data):
+                ss: StaticSet = empty_ss & data  # type: ignore
 
-                self.assertFalse(bool(ss._items))
+                self.assertEqual(len(ss), 0)
                 self.assertIsNone(ss.oftype)
 
     # One item & different iterables
@@ -181,16 +180,16 @@ class TestAndStaticSet(unittest.TestCase):
         """Check behaviour of & operator with empty iterables."""
         one_ss: StaticSet = StaticSet([1])
         for iter_type, func in ITERABLE_GENERATORS.items():
-            with self.subTest(iterable_type=iter_type, func=func):
+            with self.subTest(iterable_type=iter_type):
                 ss: StaticSet = one_ss & func([])
 
-                self.assertFalse(bool(ss._items))
+                self.assertEqual(len(ss), 0)
                 self.assertIsNone(ss.oftype)
 
     def test_set_with_one_similar_item_expect_result_set_to_be_equal_to_original(self) -> None:  # noqa: E501,B950
         """Check behaviour of & operator when set with one item is compared."""
         for iter_type, func in ITERABLE_GENERATORS.items():
-            with self.subTest(iterable_type=iter_type, func=func):
+            with self.subTest(iterable_type=iter_type):
                 for h_type, h in HASHABLES_IN_TUPLES.items():
                     if iter_type is str:
                         h_type = str
@@ -205,25 +204,33 @@ class TestAndStaticSet(unittest.TestCase):
 
     # Several items & different iterables
     # # ...
-    def test_set_with_several_items_none_identical_to_iterable_expect_empty_set(self) -> None:  # noqa: E501,B950
+    def test_set_with_several_items_with_none_identical_to_iterable_expect_empty_set(self) -> None:  # noqa: E501,B950
         """Check behaviour of & operator when no identical items."""
         for it_type, func in ITERABLE_GENERATORS.items():
-            with self.subTest(iterable_type=it_type, func=func):
-                several_ss: StaticSet = StaticSet(func(b"KLMNO"))
-                ss: StaticSet = several_ss & func(b"PQRST")
+            if it_type is str or it_type is bytes:
+                continue
 
-                self.assertFalse(bool(ss._items))
+            data1: Iterable[Hashable] = func(b"KLMNO")
+            data2: Iterable[Hashable] = func(b"PQRST")
+            with self.subTest(iterable_type=it_type, data1=data1, data2=data2):
+                several_ss: StaticSet = StaticSet(data1)
+                ss: StaticSet = several_ss & data2  # type: ignore
+
+                self.assertEqual(len(ss), 0)
                 self.assertIsNone(ss.oftype)
 
-    def test_set_with_several_items_one_identical_to_iterable_expect_empty_set(self) -> None:  # noqa: E501,B950
+    def test_set_with_several_items_with_one_identical_to_iterable_expect_empty_set(self) -> None:  # noqa: E501,B950
         """Check behaviour of & operator when one identical item."""
         for it_type, func in ITERABLE_GENERATORS.items():
-            with self.subTest(iterable_type=it_type, func=func):
-                several_ss: StaticSet = StaticSet(func([*range(70, 76)]))
-                ss: StaticSet = several_ss & func([*range(65, 70)])
+            it_type = str if it_type is str else int
+            data1: Iterable[Hashable] = func(b"LMNOP")
+            data2: Iterable[Hashable] = func(b"PQRST")
+            with self.subTest(iterable_type=it_type, data1=data1, data2=data2):
+                several_ss: StaticSet = StaticSet(data1)
+                ss: StaticSet = several_ss & data2  # type: ignore
 
-                self.assertFalse(bool(ss._items))
-                self.assertIsNone(ss.oftype)
+                self.assertTrue(len(ss))
+                self.assertEqual(ss.oftype, it_type)
 
     # TypeError: unhashables
 

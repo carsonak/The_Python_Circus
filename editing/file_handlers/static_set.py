@@ -32,11 +32,6 @@ class StaticSet(MutableSet[_SSHashable]):
         self.__items = set(items)
 
     @property
-    def _items(self) -> set[_SSHashable]:
-        """Return the internal set being used."""
-        return self.__items
-
-    @property
     def oftype(self) -> type | None:
         """Return type of all objects in self."""
         return self.__oftype
@@ -59,7 +54,7 @@ class StaticSet(MutableSet[_SSHashable]):
         """Return an iterator of self."""
         return iter(self.__items)
 
-    def __ior__(self, other: Iterable[Hashable]) -> StaticSet[_SSHashable]:
+    def __ior__(self, other: Iterable) -> StaticSet[_SSHashable]:
         """Return self | other."""
         self.update(other)
         return self
@@ -84,7 +79,7 @@ class StaticSet(MutableSet[_SSHashable]):
         """Return length of self."""
         return len(self.__items)
 
-    def __or__(self, other: Iterable[Hashable]) -> StaticSet[_SSHashable]:
+    def __or__(self, other: Iterable) -> StaticSet[_SSHashable]:
         """Return self | other."""
         if not isinstance(other, Iterable):
             return NotImplemented
@@ -155,7 +150,7 @@ class StaticSet(MutableSet[_SSHashable]):
     def _from_iterable(
             cls, items: Iterable[_GenHashable]) -> StaticSet[_GenHashable]:
         """Construct an instance of the class from any iterable input."""
-        return cls(items)
+        return cls(items)  # type: ignore
 
     def add(self, value: _SSHashable) -> None:
         """Add an item to self.
@@ -305,99 +300,3 @@ class StaticSet(MutableSet[_SSHashable]):
         combined: StaticSet[_SSHashable] = self.union(*others)
         self.__items = combined.__items
         self.__oftype = combined.oftype
-
-
-if __name__ == "__main__":
-    l0 = ["Zero", "One", "Two", "Three"]
-    print(f"l0 = {l0}")
-    ss0 = StaticSet(l0)
-    print(f"ss0 = {ss0}")
-    l3 = ["Three", "Four", "Five", "Six", "Seven"]
-    print(f"l3 = {l3}")
-    ss3 = StaticSet(l3)
-    print(f"{len(ss3)} items in ss3:", end="")
-    for i in ss3:
-        print(" '{}'".format(i), end="")
-    else:
-        print()
-
-    print()
-
-    print("ss0 & ss0: ", ss0 & ss0)
-    print("ss0 & ss3: ", ss0 & ss3)
-    print("ss0 & l3: ", ss0 & l3)
-
-    print()
-
-    print("ss0 | ss0: ", ss0 | ss0)
-    print("ss0 | ss3: ", ss0 | ss3)
-    print("ss0 | l3: ", ss0 | l3)
-
-    print()
-
-    print("ss0 ^ ss0: ", ss0 ^ ss0)
-    print("ss0 ^ ss3: ", ss0 ^ ss3)
-    print("ss0 ^ l3: ", ss0 ^ l3)
-
-    print()
-
-    print("ss0 == ss0: ", ss0 == ss0)
-    print("ss0 == ss3: ", ss0 == ss3)
-    # print("ss0 == l0: ", ss0 == l0)
-
-    print()
-
-    print("ss0 != ss0: ", ss0 != ss0)
-    print("ss0 != ss3: ", ss0 != ss3)
-    # print("ss0 != l0: ", ss0 != l0)
-
-    print()
-
-    print("ss0 >= ss0: ", ss0 >= ss0)
-    print("ss0 >= ss3: ", ss0 >= ss3)
-    # print("ss0 >= l3: ", ss0 >= l3)
-
-    print()
-
-    print("ss0 > ss0: ", ss0 > ss0)
-    print("ss0 > ss3: ", ss0 > ss3)
-    # print("ss0 > l3: ", ss0 > l3)
-
-    print()
-
-    print("ss0 <= ss0: ", ss0 <= ss0)
-    print("ss0 <= ss3: ", ss0 <= ss3)
-    # print("ss0 <= l3: ", ss0 <= l3)
-
-    print()
-
-    print("ss0 < ss0: ", ss0 < ss0)
-    print("ss0 < ss3: ", ss0 < ss3)
-    # print("ss0 < l3: ", ss0 < l3)
-
-    print()
-
-    ss_calc = ss0 - ss0
-    print("ss0 - ss0: ", ss_calc)
-    ss_calc = ss0 - ss3
-    print("ss0 - ss3: ", ss_calc)
-    print("ss0 - l3: ", ss0 - l3)
-
-    print()
-
-    print("'Zero' in ss0: ", "Zero" in ss0)
-    ss0.add("Four")
-    print("ss0.add('Four'): ", ss0)
-    print("_ := ss0.copy(): ", _ := ss0.copy())
-    ss0.discard("Zero")
-    print("ss0.discard('Zero'): ", ss0)
-    print("ss0.pop(): ", ss0.pop())
-    ss3.remove("Three")
-    print("ss3.remove('Three')", ss3)
-    print("ss0.union(ss3): ", ss0.union(ss3))
-    ss0.clear()
-    print("ss0.clear(): ", ss0)
-    ss0.update(l0)
-    print("ss0.update(l0): ", ss0)
-    print("ss3.issuperset(l0): ", ss3.issuperset(l0))
-    print("ss0.issuperset(l0): ", ss0.issuperset(l0))
