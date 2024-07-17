@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Playing around with base conversion."""
 
-
 from collections.abc import Iterator
 
 
@@ -21,8 +20,7 @@ class MyNum:
         else:
             raise ValueError("base is put of range. Supported bases are 2-36")
 
-        self.__is_negative: bool = num < 0
-        self.__arr: bytearray = bytearray()
+        is_negative: bool = num < 0
         num = abs(num)
         match base:
             case 2:
@@ -34,6 +32,7 @@ class MyNum:
             case 16:
                 self.__arr = bytearray(hex(num).lstrip("0x"), "utf-8")
             case _:
+                self.__arr = bytearray()
                 while num:
                     v: int = num % base
                     if 0 <= v <= 10:
@@ -43,6 +42,9 @@ class MyNum:
 
                     self.__arr.insert(0, v)
                     num //= base
+
+        if is_negative:
+            self.__arr.insert(0, ord("-"))
 
     @property
     def base(self) -> int:
@@ -55,8 +57,4 @@ class MyNum:
 
     def __repr__(self) -> str:
         """Return string representation of self."""
-        s: str = ""
-        if self.__is_negative:
-            s = "-"
-
-        return s + "".join([chr(v) for v in self])
+        return "".join([chr(v) for v in self.__arr])
