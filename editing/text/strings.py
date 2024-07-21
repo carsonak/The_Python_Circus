@@ -1,29 +1,5 @@
 #!/usr/bin/python3
-"""Module for string."""
-
-import os
-
-
-def strip_path(path: str) -> str:
-    """Remove trailing slashes and ./ from pathnames.
-
-    Args:
-        path: a string represeting a pathname.
-
-    Returns:
-        The modified string.
-
-    Raises:
-        TypeError: path is not a str object.
-    """
-    if not isinstance(path, str):
-        raise TypeError("path must be a string")
-
-    path = path.strip(os.sep)
-    if path.startswith(f".{os.sep}"):
-        path = path[2:]
-
-    return path
+"""Module for strings."""
 
 
 def trimstr(
@@ -43,7 +19,7 @@ def trimstr(
         The modified string.
 
     Raises:
-        TypeError: if one of stringm fill or mark is not a str
+        TypeError: if one of string, fill or mark is not a str
         Exceptions raised by improper slice() arguments
     """
     if not isinstance(string, str):

@@ -56,9 +56,9 @@ def process_remove_annotations_args(args: Namespace) -> None:
     if args.files:
         f = args.files
 
-    dir: str = ""
+    directory: str = ""
     if args.directory:
-        dir = args.directory
+        directory = args.directory
 
     depth: int = -1
     if args.depth:
@@ -79,7 +79,7 @@ def process_remove_annotations_args(args: Namespace) -> None:
         bl.directories = args.exclude_dirs
 
     tracker: FileTracker = FileTracker(
-        files=f, directory=dir, max_descent=depth, blacklist=bl,
+        files=f, directory=directory, max_descent=depth, blacklist=bl,
         whitelist=wl,
     )
 
@@ -140,7 +140,7 @@ def remove_annotations_ast(
     Args:
         data: a FileData object that can store the file's data.
         file_path: path to a python script file, if data.filepath is None, the
-            attribute will be intatiated with file_path.
+            attribute will be initiated with file_path.
         file_progress: a Progress tracker, a task will be added and advanced
             as steps are completed, which shall be indicated by a steps field.
 
@@ -182,7 +182,7 @@ def remove_annotations_ast(
                 )
 
             tmpf.write(bytes(
-                (f"#!/usr/bin/python3\n{ast.unparse(data.tree)}"),
+                (f"#!/usr/bin/python3\n{ast.unparse(data.tree)}\n"),
                 encoding="utf-8",
             ))
             tmpf.flush()

@@ -11,7 +11,6 @@ from typing import Union
 from file_handlers.file_data import FileData
 from file_handlers.file_system_search_list import FSSearchList
 from file_handlers.walk_directory import walk_directory
-from text.string import strip_path
 
 
 class FileTracker:
@@ -83,9 +82,7 @@ class FileTracker:
         self.__files: dict[str, FileData] = {}
         if isinstance(files, (str, bytes, os.PathLike)):
             temp: FileData = FileData(files)
-            if temp.filepath:
-                temp.filepath = strip_path(temp.filepath)
-                self.__files[temp.filepath] = temp
+            self.__files[temp.filepath] = temp
 
             return
 
@@ -126,7 +123,7 @@ class FileTracker:
         """
         # TODO(Andrew): check that encoding for bytes->str is utf-8
         directory = str(os.fspath(directory))
-        self.__workingdir = strip_path(directory)
+        self.__workingdir = os.path.normpath(directory)
         for root, _dirs, files in walk_directory(
             self.__workingdir, self.pattern, self.whitelist,
             self.blacklist, self.depth,
@@ -236,7 +233,7 @@ class FileTracker:
         if type(filename) is not str:
             raise TypeError("filename must be a str")
 
-        return self.__files[strip_path(filename)]
+        return self.__files[os.path.normpath(filename)]
 
     def __setitem__(self, filename: str, data: FileData) -> None:
         """Update a file in files with data.
@@ -259,7 +256,7 @@ class FileTracker:
         if not isinstance(data, FileData):
             raise TypeError(f"data must be an instance of {FileData}")
 
-        self.__files[strip_path(filename)] = data
+        self.__files[os.path.normpath(filename)] = data
 
     def __delitem__(self, filename: str) -> None:
         """Delete filename from mapping."""
@@ -293,10 +290,7 @@ class FileTracker:
             except (ValueError):
                 continue
 
-            if temp.filepath:
-                self.__files.setdefault(
-                    strip_path(temp.filepath), FileData()
-                )
+            self.__files.setdefault(os.path.normpath(temp.filepath), temp)
 
     def pop(self, filename: str) -> FileData | None:
         """Pop filename from mapping if found else None."""

@@ -29,7 +29,7 @@ class FileData:
     """A container for Python script data."""
 
     def __init__(
-        self, file_path: str | bytes | os.PathLike | None = None,
+        self, file_path: str | bytes | os.PathLike,
         content: str | bytes | None = None, tree: ast.AST | None = None,
     ) -> None:
         """Initialise a container for Python script data.
@@ -82,7 +82,7 @@ class FileData:
         if val is None:
             return
 
-        if not isinstance(val, (str | bytes)):
+        if not isinstance(val, (str, bytes)):
             raise TypeError(
                 f"object must be an instance of {str}, {bytes} or None")
 

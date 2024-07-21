@@ -1,14 +1,13 @@
 #!/usr/bin/python3
-"""Module for filesysytem_blacklist_whitelist."""
+"""Module for filesystem_blacklist_whitelist."""
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 from contextlib import suppress
 import fnmatch
-from os.path import basename
+from os.path import basename, normpath
 import re
 
 from file_handlers.static_set import StaticSet
-from text.string import strip_path
 
 
 class FSSearchList:
@@ -27,9 +26,9 @@ class FSSearchList:
         self.directories = directories  # type: ignore
 
     @property
-    def files(self) -> Iterator[str]:
+    def files(self) -> StaticSet[str]:
         """An iterator of all file patterns."""
-        return self.__fileList.items
+        return self.__fileList
 
     @files.setter
     def files(self, files: str | Iterable[str] | None) -> None:
@@ -49,16 +48,16 @@ class FSSearchList:
 
         self.__fileList: StaticSet = StaticSet()
         if isinstance(files, str):
-            self.__fileList = StaticSet(strip_path(files))
+            self.__fileList = StaticSet(normpath(files))
         elif isinstance(files, Iterable):
             for path_pattern in files:
                 with suppress(TypeError):
-                    self.__fileList.add(strip_path(path_pattern))
+                    self.__fileList.add(normpath(path_pattern))
 
     @property
-    def directories(self) -> Iterator[str]:
+    def directories(self) -> StaticSet[str]:
         """An iterator of all directory patterns."""
-        return self.__dirList.items
+        return self.__dirList
 
     @directories.setter
     def directories(self, directories: str | Iterable[str] | None) -> None:
@@ -82,11 +81,11 @@ class FSSearchList:
 
         self.__dirList: StaticSet = StaticSet()
         if isinstance(directories, str):
-            self.__dirList = StaticSet(strip_path(directories))
+            self.__dirList = StaticSet(normpath(directories))
         elif isinstance(directories, Iterable):
             for path_pattern in directories:
                 with suppress(TypeError):
-                    self.__dirList.add(strip_path(path_pattern))
+                    self.__dirList.add(normpath(path_pattern))
 
     def __repr__(self) -> str:
         """Return an official string representation of this instance."""
@@ -100,7 +99,7 @@ class FSSearchList:
             path_pattern: Unix like filename patterns.
         """
         if isinstance(path_pattern, str):
-            path_pattern = strip_path(path_pattern)
+            path_pattern = normpath(path_pattern)
             return (
                 (path_pattern in self.__fileList or
                  path_pattern in self.__dirList) or
@@ -120,11 +119,11 @@ class FSSearchList:
             TypeError: path_patterns is not a string or an iterable of strings.
         """
         if isinstance(path_patterns, str):
-            self.__fileList.add(strip_path(path_patterns))
+            self.__fileList.add(normpath(path_patterns))
         elif isinstance(path_patterns, Iterable):
             for p in path_patterns:
                 with suppress(TypeError):
-                    self.__fileList.add(strip_path(p))
+                    self.__fileList.add(normpath(p))
         else:
             raise TypeError(
                 "path_patterns must be a string or an iterable of strings")
@@ -139,11 +138,11 @@ class FSSearchList:
             TypeError: path_patterns is not a string or an iterable of strings.
         """
         if isinstance(path_patterns, str):
-            self.__dirList.add(strip_path(path_patterns))
+            self.__dirList.add(normpath(path_patterns))
         elif isinstance(path_patterns, Iterable):
             for p in path_patterns:
                 with suppress(TypeError):
-                    self.__dirList.add(strip_path(p))
+                    self.__dirList.add(normpath(p))
         else:
             raise TypeError(
                 "path_patterns must be a string or an iterable of strings")
@@ -158,11 +157,11 @@ class FSSearchList:
             TypeError: path_patterns is not a string or an iterable of strings.
         """
         if isinstance(path_patterns, str):
-            self.__fileList.discard(strip_path(path_patterns))
+            self.__fileList.discard(normpath(path_patterns))
         elif isinstance(path_patterns, Iterable):
             for p in path_patterns:
                 with suppress(TypeError):
-                    self.__fileList.discard(strip_path(p))
+                    self.__fileList.discard(normpath(p))
         else:
             raise TypeError(
                 "path_patterns must be a string or an iterable of strings")
@@ -177,11 +176,11 @@ class FSSearchList:
             TypeError: path_patterns is not a string or an iterable of strings.
         """
         if isinstance(path_patterns, str):
-            self.__dirList.discard(strip_path(path_patterns))
+            self.__dirList.discard(normpath(path_patterns))
         elif isinstance(path_patterns, Iterable):
             for p in path_patterns:
                 with suppress(TypeError):
-                    self.__fileList.discard(strip_path(p))
+                    self.__fileList.discard(normpath(p))
         else:
             raise TypeError(
                 "path_patterns must be a string or an iterable of strings")
@@ -199,7 +198,7 @@ class FSSearchList:
                 None.
         """
         if isinstance(path_pattern, str):
-            path_pattern = strip_path(path_pattern)
+            path_pattern = normpath(path_pattern)
             if path_pattern in self.__fileList:
                 return path_pattern
 
@@ -222,7 +221,7 @@ class FSSearchList:
                 None.
         """
         if isinstance(path_pattern, str):
-            path_pattern = strip_path(path_pattern)
+            path_pattern = normpath(path_pattern)
             if path_pattern in self.__fileList:
                 return path_pattern
 
@@ -236,7 +235,7 @@ class FSSearchList:
         """Delete all entries in files List."""
         self.__fileList.clear()
 
-    def clear_dirctories(self) -> None:
+    def clear_directories(self) -> None:
         """Delete all entries in directories List."""
         self.__dirList.clear()
 
@@ -254,6 +253,9 @@ class FSSearchList:
         """
         if not isinstance(path, str):
             raise TypeError("path must be a str")
+
+        if not self.files:
+            return False
 
         matching_pattern: str = "|".join(
             [fnmatch.translate(pat) for pat in self.files])
@@ -275,7 +277,10 @@ class FSSearchList:
         if not isinstance(path, str):
             raise TypeError("path must be a str")
 
+        if not self.directories:
+            return False
+
         matching_pattern: str = "|".join(
             [fnmatch.translate(pat) for pat in self.directories])
 
-        return bool(re.match(matching_pattern, path))
+        return bool(re.search(matching_pattern, path))
