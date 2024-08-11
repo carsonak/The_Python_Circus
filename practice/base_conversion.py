@@ -1,60 +1,84 @@
-#!/usr/bin/env python3
-"""Playing around with base conversion."""
+#!/usr/bin/python3
+"""Convert an int to any base between 2 and 62."""
 
-from collections.abc import Iterator
+from random import randint
+import sys
+from timeit import timeit
 
 
-class MyNum:
-    """A custom number representation."""
+if hasattr(sys, "set_int_max_str_digits"):
+    sys.set_int_max_str_digits(0)
 
-    def __init__(self, num: int, base: int) -> None:
-        """Initialise MyNum."""
-        if type(num) is not int:
-            raise TypeError("num must be an int")
 
-        if type(base) is not int:
-            raise TypeError("base must be an int")
+def to_anybase(num: int, base: int) -> str:
+    """Return the string representation of a number in a given base.
 
-        if 2 <= base <= 36:
-            self.__base = base
-        else:
-            raise ValueError("base is put of range. Supported bases are 2-36")
+    Args:
+        num: the number to convert.
+        base: radix between 2 and 62 to convert the number to.
 
-        is_negative: bool = num < 0
-        num = abs(num)
-        match base:
-            case 2:
-                self.__arr = bytearray(bin(num).lstrip("0b"), "utf-8")
-            case 8:
-                self.__arr = bytearray(oct(num).lstrip("0o"), "utf-8")
-            case 10:
-                self.__arr = bytearray(str(num), "utf-8")
-            case 16:
-                self.__arr = bytearray(hex(num).lstrip("0x"), "utf-8")
-            case _:
-                self.__arr = bytearray()
-                while num:
-                    v: int = num % base
-                    if 0 <= v <= 10:
-                        v += ord("0")
-                    else:
-                        v = ord("A") + (v - 10)
+    Return:
+        a string representing the given number in the given base.
+    """
+    if type(num) is not int:
+        raise TypeError("num must be an int")
 
-                    self.__arr.insert(0, v)
-                    num //= base
+    if type(base) is not int:
+        raise TypeError("base must be an int")
 
-        if is_negative:
-            self.__arr.insert(0, ord("-"))
+    if not 2 <= base <= 62:
+        raise ValueError("base is out of range, must be between 2-62")
 
-    @property
-    def base(self) -> int:
-        """The base of the number."""
-        return self.__base
+    if num == 0:
+        return "0"
 
-    def __iter__(self) -> Iterator:
-        """Return an iterator of self."""
-        return iter(self.__arr)
+    match base:
+        case 2:
+            return bin(num)
+        case 8:
+            return oct(num)
+        case 16:
+            return hex(num)
+        case _:
+            out: str = ""
+            is_negative: bool = num < 0
+            num = abs(num)
+            while num:
+                c: int = num % base
+                if c < 10:
+                    out = chr(ord("0") + c) + out
+                elif c < 36:
+                    out = chr(ord("a") + c - 10) + out
+                else:
+                    out = chr(ord("A") + c - 36) + out
 
-    def __repr__(self) -> str:
-        """Return string representation of self."""
-        return "".join([chr(v) for v in self.__arr])
+                num //= base
+
+    if is_negative:
+        out = "-" + out
+
+    return out
+
+
+if __name__ == "__main__":
+    print(to_anybase(int(sys.argv[1]), int(sys.argv[2])))
+    # num = 1000
+    # print("num = {}, base = 36: {}s".format(
+    #     num, timeit(stmt="to_anybase(num, 36)", number=10, globals=globals()))
+    # )
+    # num = 1000 ** 10
+    # print("num = 1000 ** 10, base = 36: {}s".format(
+    #     timeit(stmt="to_anybase(num, 36)", number=10, globals=globals()))
+    # )
+    # num = 1000 ** 100
+    # print("num = 1000 ** 100, base = 36: {}s".format(
+    #     timeit(stmt="to_anybase(num, 36)", number=10, globals=globals()))
+    # )
+    # num = 1000 ** 1_000
+    # print("num = 1000 ** 1_000, base = 36: {}s".format(
+    #     timeit(stmt="to_anybase(num, 36)", number=10, globals=globals()))
+    # )
+    # num = 1000 ** 10_000
+    # print("num = 1000 ** 10_000, base = 36: {}s".format(
+    #     timeit(stmt="to_anybase(num, 36)", number=10, globals=globals()))
+    # )
